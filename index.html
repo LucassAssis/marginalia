@@ -1,0 +1,1708 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marginália</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#f6f1e9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens ---------- */
+  :root, [data-theme="paper"] {
+    --desk:    oklch(0.945 0.012 78);
+    --surface: oklch(0.972 0.009 80);
+    --page:    oklch(0.995 0.004 85);
+    --ink:     oklch(0.25 0.02 50);
+    --ink-2:   oklch(0.44 0.022 55);
+    --ink-3:   oklch(0.6 0.02 60);
+    --rule:    oklch(0.87 0.016 75);
+    --accent:  oklch(0.48 0.14 32);
+    --accent-soft: oklch(0.48 0.14 32 / 0.1);
+    --mark:    oklch(0.83 0.1 75 / 0.55);
+    --sel:     oklch(0.6 0.15 45 / 0.32);
+    --canvas-filter: none;
+    --canvas-blend: normal;
+    --hl-opacity: 0.5;
+    --hl-blend: multiply;
+    --page-shadow: 0 1px 2px oklch(0.3 0.03 60 / 0.08), 0 12px 32px -14px oklch(0.3 0.04 60 / 0.28);
+    color-scheme: light;
+  }
+  [data-theme="sepia"] {
+    --desk:    oklch(0.885 0.03 74);
+    --surface: oklch(0.925 0.028 78);
+    --page:    oklch(0.95 0.034 82);
+    --ink:     oklch(0.3 0.04 55);
+    --ink-2:   oklch(0.45 0.045 58);
+    --ink-3:   oklch(0.58 0.04 62);
+    --rule:    oklch(0.82 0.035 72);
+    --accent:  oklch(0.46 0.13 38);
+    --accent-soft: oklch(0.46 0.13 38 / 0.11);
+    --mark:    oklch(0.78 0.11 70 / 0.5);
+    --canvas-blend: multiply;
+  }
+  [data-theme="night"] {
+    --desk:    oklch(0.17 0.01 60);
+    --surface: oklch(0.205 0.011 60);
+    --page:    oklch(0.245 0.008 65);
+    --ink:     oklch(0.9 0.018 80);
+    --ink-2:   oklch(0.74 0.02 75);
+    --ink-3:   oklch(0.58 0.018 70);
+    --rule:    oklch(0.31 0.012 60);
+    --accent:  oklch(0.74 0.12 50);
+    --accent-soft: oklch(0.74 0.12 50 / 0.12);
+    --mark:    oklch(0.6 0.1 60 / 0.45);
+    --sel:     oklch(0.7 0.13 55 / 0.35);
+    --canvas-filter: invert(0.88) hue-rotate(180deg) sepia(0.12);
+    --hl-opacity: 0.32;
+    --hl-blend: normal;
+    --page-shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 14px 36px -14px oklch(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+
+  :root { --ease: cubic-bezier(0.25, 1, 0.5, 1); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: grid; grid-template-rows: auto 1fr;
+    background: var(--desk); color: var(--ink);
+    font: 14px/1.45 "Hanken Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Barra superior ---------- */
+  .bar {
+    display: flex; align-items: center; gap: 20px;
+    padding: 10px clamp(16px, 2vw, 28px);
+    background: var(--surface); border-bottom: 1px solid var(--rule);
+  }
+  .brand { font: italic 24px/1 "Instrument Serif", serif; letter-spacing: -0.01em; white-space: nowrap; border: 0; background: none; padding: 0; color: var(--ink); }
+  .brand:hover { color: var(--accent); }
+  .brand b { font-weight: 400; color: var(--accent); }
+  .book {
+    flex: 1; min-width: 0; font: italic 15px/1.2 "Newsreader", serif; color: var(--ink-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .book:not(:empty)::before { content: "—"; margin-right: 10px; color: var(--ink-3); font-style: normal; }
+  .controls { display: flex; align-items: center; gap: 14px; }
+  .group { display: flex; align-items: center; gap: 2px; }
+  .sep { width: 1px; height: 20px; background: var(--rule); }
+
+  .ghost {
+    height: 32px; min-width: 32px; padding: 0 9px; border: 0; border-radius: 8px;
+    background: transparent; display: inline-grid; place-items: center; color: var(--ink-2);
+    transition: background .15s, color .15s;
+  }
+  .ghost:hover:not(:disabled) { background: var(--accent-soft); color: var(--ink); }
+  .ghost:disabled { opacity: .35; cursor: default; }
+  .ghost[aria-pressed="true"] { color: var(--accent); }
+  #bookmarkBtn[aria-pressed="true"] svg { fill: currentColor; }
+  .ghost svg { width: 18px; height: 18px; }
+  #zoomLabel { font-variant-numeric: tabular-nums; min-width: 58px; font-size: 13px; }
+
+  .pager { display: flex; align-items: baseline; gap: 6px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pager input {
+    width: 48px; height: 30px; text-align: center; border: 1px solid var(--rule); border-radius: 7px;
+    background: var(--page); color: var(--ink);
+  }
+  .pager input:disabled { opacity: .5; }
+
+  .themes { display: flex; gap: 6px; }
+  .swatch {
+    width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--rule); padding: 0;
+    box-shadow: inset 0 0 0 2px var(--surface);
+  }
+  .swatch[data-set="paper"] { background: oklch(0.99 0.004 85); }
+  .swatch[data-set="sepia"] { background: oklch(0.9 0.05 80); }
+  .swatch[data-set="night"] { background: oklch(0.25 0.01 60); }
+  .swatch[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 1.5px var(--accent); }
+
+  .primary {
+    height: 34px; padding: 0 14px; border-radius: 9px; border: 0; white-space: nowrap;
+    background: var(--ink); color: var(--surface); font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .15s var(--ease), background .15s;
+  }
+  .primary:hover { background: var(--accent); }
+  .primary:active { transform: translateY(1px); }
+
+  /* ---------- Palco ---------- */
+  .stage { display: grid; grid-template-columns: 1fr auto; min-height: 0; }
+  .viewer { position: relative; overflow: auto; min-width: 0; scroll-padding-top: 24px; }
+  .viewer.dragging::after {
+    content: "Solte o PDF para abrir"; position: absolute; inset: 16px; display: grid; place-items: center;
+    border: 2px dashed var(--accent); border-radius: 16px; background: color-mix(in oklch, var(--desk) 85%, transparent);
+    font: italic 30px "Instrument Serif", serif; color: var(--accent); pointer-events: none;
+  }
+
+  .pages { padding: clamp(20px, 4vh, 44px) 16px 80px; }
+  .page {
+    position: relative; margin: 0 auto 44px; background: var(--page);
+    box-shadow: var(--page-shadow);
+  }
+  .page canvas {
+    display: block; opacity: 0; filter: var(--canvas-filter); mix-blend-mode: var(--canvas-blend);
+    transition: opacity .35s var(--ease);
+  }
+  .page.ready canvas { opacity: 1; }
+  .folio {
+    position: absolute; top: 100%; left: 0; right: 0; padding-top: 12px; text-align: center;
+    font: italic 13px "Newsreader", serif; color: var(--ink-3); font-variant-numeric: oldstyle-nums;
+    user-select: none;
+  }
+  .page.no-text .folio::after { content: " · sem texto selecionável (PDF escaneado?)"; }
+
+  /* Camada de texto do pdf.js 3.x — precisa destas regras para ficar em cima do desenho */
+  .textLayer { position: absolute; inset: 0; overflow: hidden; line-height: 1; text-align: initial;
+    -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; z-index: 2; }
+  .textLayer span, .textLayer br { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+  .textLayer span.markedContent { top: 0; height: 0; }
+  .textLayer ::selection { background: var(--sel); }
+  .textLayer br::selection { background: transparent; }
+  .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: -1; cursor: default; user-select: none; }
+  .textLayer.selecting .endOfContent { top: 0; }
+
+  /* ---------- Destaques, anotações e marcadores na página ---------- */
+  [data-color="yellow"] { --c: oklch(0.87 0.15 95); }
+  [data-color="green"]  { --c: oklch(0.84 0.13 150); }
+  [data-color="blue"]   { --c: oklch(0.8 0.1 240); }
+  [data-color="pink"]   { --c: oklch(0.8 0.13 355); }
+  .hl-layer, .note-layer { position: absolute; inset: 0; pointer-events: none; }
+  .hl-layer { z-index: 1; }
+  .note-layer { z-index: 3; }
+  .hl { position: absolute; background: var(--c); opacity: var(--hl-opacity); mix-blend-mode: var(--hl-blend); border-radius: 2px; }
+  .hl.flash { animation: flash .6s var(--ease) 3; }
+  .hl-note {
+    position: absolute; right: 10px; width: 24px; height: 24px; margin-top: -2px; border: 0; border-radius: 50%;
+    display: grid; place-items: center; pointer-events: auto; cursor: pointer;
+    background: var(--accent); color: var(--surface); box-shadow: 0 2px 8px oklch(0.2 0.03 60 / 0.3);
+    transition: transform .15s var(--ease);
+  }
+  .hl-note:hover { transform: scale(1.1); }
+  .hl-note svg { width: 12px; height: 12px; }
+  .page.bookmarked::after {
+    content: ""; position: absolute; top: -5px; right: 34px; width: 18px; height: 38px; z-index: 4;
+    background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+    animation: drop .35s var(--ease) both;
+  }
+
+  /* ---------- Estado vazio ---------- */
+  .empty { max-width: 560px; margin: clamp(40px, 12vh, 120px) auto 60px; padding: 0 24px; }
+  .empty > * { animation: rise .7s var(--ease) both; }
+  .empty > :nth-child(2) { animation-delay: .06s; } .empty > :nth-child(3) { animation-delay: .12s; }
+  .empty > :nth-child(4) { animation-delay: .18s; } .empty > :nth-child(5) { animation-delay: .24s; }
+  .eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  .empty h2 { font: 400 clamp(40px, 6vw, 62px)/1.02 "Instrument Serif", serif; letter-spacing: -0.015em; margin: 0 0 18px; }
+  .empty h2 em { color: var(--ink-2); }
+  .empty p { font: 18px/1.55 "Newsreader", serif; color: var(--ink-2); margin: 0 0 28px; max-width: 46ch; }
+  .drop {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 20px 22px; border: 1.5px dashed var(--rule); border-radius: 14px; margin-bottom: 28px;
+  }
+  .drop span { color: var(--ink-3); }
+  .keys { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; padding: 0; list-style: none; color: var(--ink-3); font-size: 13px; }
+  kbd {
+    font: 600 11.5px/1 "Hanken Grotesk", sans-serif; padding: 3px 6px; border-radius: 5px;
+    border: 1px solid var(--rule); border-bottom-width: 2px; background: var(--page); color: var(--ink-2);
+  }
+  .fine { font-size: 12.5px !important; font-family: "Hanken Grotesk", sans-serif !important; color: var(--ink-3) !important; margin-top: 22px !important; }
+
+  .file-warning {
+    margin: 0 0 32px !important; padding: 14px 18px; border-radius: 12px; max-width: none !important;
+    background: var(--accent-soft); border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);
+    font: 15.5px/1.5 "Hanken Grotesk", sans-serif !important; color: var(--ink) !important;
+  }
+  .file-warning[hidden] { display: none; }
+
+  /* ---------- Estante ---------- */
+  .empty:has(#shelf:not([hidden])) { max-width: 940px; }
+  .shelf-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 30px; }
+  .shelf-head h2 { margin: 0 !important; }
+  .shelf-actions { display: flex; align-items: center; gap: 20px; }
+  label.text-btn { cursor: pointer; }
+  .books { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 36px 26px; }
+  .book-item { position: relative; animation: rise .6s var(--ease) both; }
+  .book-item:nth-child(2) { animation-delay: .05s; } .book-item:nth-child(3) { animation-delay: .1s; } .book-item:nth-child(n+4) { animation-delay: .15s; }
+  .book-open { display: flex; flex-direction: column; gap: 7px; width: 100%; border: 0; background: none; padding: 0; text-align: left; color: inherit; }
+  .cover { display: block; aspect-ratio: 2 / 3; background: var(--page); box-shadow: var(--page-shadow); overflow: hidden; transition: transform .3s var(--ease); }
+  .cover img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .book-open:hover .cover { transform: translateY(-4px); }
+  .book-title { font: 600 16px/1.3 "Newsreader", serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 6px; }
+  .book-meta { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .progress { display: block; height: 2px; background: var(--rule); border-radius: 1px; overflow: hidden; }
+  .progress span { display: block; height: 100%; background: var(--accent); }
+  .resume { display: none; color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 12px; }
+  .book-remove { position: absolute; top: 8px; left: 8px; opacity: 0; background: var(--surface) !important; padding: 5px 9px !important; border-radius: 7px; transition: opacity .15s; }
+  .book-item:hover .book-remove, .book-remove:focus-visible { opacity: 1; }
+  @media (hover: none) { .book-remove { opacity: 1; } }
+  /* o livro lido por último ocupa a linha inteira: "continue de onde parou" */
+  .book-item:first-child { grid-column: 1 / -1; }
+  .book-item:first-child .book-open { display: grid; grid-template-columns: 168px 1fr; grid-template-rows: auto auto auto 1fr; column-gap: 28px; }
+  .book-item:first-child .cover { grid-row: 1 / -1; }
+  .book-item:first-child .book-title { font: 400 clamp(26px, 3.4vw, 36px)/1.1 "Instrument Serif", serif; -webkit-line-clamp: 3; margin-top: 18px; }
+  .book-item:first-child .progress { max-width: 280px; margin-top: 4px; }
+  .book-item:first-child .resume { display: block; }
+  .book-item:first-child .book-remove { left: 8px; }
+
+  /* ---------- Painel do dicionário ---------- */
+  .panel {
+    width: clamp(320px, 28vw, 420px); background: var(--surface); border-left: 1px solid var(--rule);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  body[data-panel="closed"] .panel { display: none; }
+  .panel-scroll { overflow: auto; padding: 20px 24px 40px; flex: 1; }
+  .sheet-handle { display: none; }
+
+  .search { position: relative; }
+  .search svg { position: absolute; left: 13px; top: 50%; width: 17px; height: 17px; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+  .search input {
+    width: 100%; height: 46px; padding: 0 40px 0 40px; border-radius: 12px;
+    border: 1px solid var(--rule); background: var(--page); color: var(--ink);
+    font: 17px "Newsreader", serif; transition: border-color .15s, box-shadow .15s;
+  }
+  .search input::placeholder { color: var(--ink-3); font-style: italic; }
+  .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .search kbd { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
+  .search input:focus ~ kbd { display: none; }
+
+  .entry { margin-top: 26px; min-height: 120px; }
+  .entry > * { animation: rise .4s var(--ease) both; }
+  .intro { font: italic 17px/1.5 "Newsreader", serif; color: var(--ink-3); margin: 6px 0 0; }
+  .entry-head { display: flex; align-items: baseline; gap: 10px; }
+  .entry-word { font: 400 46px/1 "Instrument Serif", serif; letter-spacing: -0.01em; margin: 0; overflow-wrap: anywhere; }
+  .entry-from { margin: 8px 0 0; font: italic 15px "Newsreader", serif; color: var(--ink-3); }
+  .entry-from em { color: var(--ink-2); }
+  .sense { margin-top: 24px; }
+  .pos {
+    display: flex; align-items: center; gap: 10px; margin: 0 0 10px;
+    font: 600 11px/1 "Hanken Grotesk", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+  }
+  .pos::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  .defs { list-style: none; margin: 0; padding: 0; counter-reset: d; }
+  .defs li { counter-increment: d; display: grid; grid-template-columns: 22px 1fr; margin-bottom: 12px; font: 17px/1.5 "Newsreader", serif; }
+  .defs li::before { content: counter(d); font: italic 15px/1.75 "Newsreader", serif; color: var(--ink-3); font-variant-numeric: oldstyle-nums; }
+  .ex { display: block; margin-top: 3px; font-style: italic; color: var(--ink-2); font-size: 15.5px; }
+  a.word { color: var(--accent); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  a.word:hover { text-decoration-style: solid; }
+  .entry-links { display: flex; gap: 18px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 13px; }
+  .entry-links a { color: var(--ink-2); text-decoration: none; }
+  .entry-links a:hover { color: var(--accent); }
+  .say { align-self: center; }
+
+  .tabs { display: flex; gap: 22px; margin-top: 18px; border-bottom: 1px solid var(--rule); }
+  .tabs button {
+    border: 0; background: none; padding: 8px 0 10px; margin-bottom: -1px;
+    font-weight: 600; font-size: 13px; color: var(--ink-3); border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  [role="tabpanel"] > * { animation: rise .35s var(--ease) both; }
+  .pt-sense { margin-top: 20px; }
+  .gloss { margin: 0 0 4px; font: italic 14.5px/1.45 "Newsreader", serif; color: var(--ink-3); }
+  .pt-terms { margin: 0; font: 600 18px/1.4 "Newsreader", serif; color: var(--ink); }
+  .pt-terms.big { font-size: 28px; font-weight: 400; margin-top: 22px; }
+  .note-mt { font-size: 12.5px; color: var(--ink-3); margin: 6px 0 0; }
+  .sentence { margin-top: 30px; }
+  .sent-en { font: italic 16px/1.5 "Newsreader", serif; color: var(--ink-2); margin: 0 0 10px; }
+  .sent-pt { font: 16.5px/1.5 "Newsreader", serif; margin: 0; }
+
+  .skeleton { height: 12px; border-radius: 6px; background: var(--rule); margin: 14px 0; animation: pulse 1.2s ease-in-out infinite; }
+  .skeleton.w1 { width: 40%; height: 34px; } .skeleton.w2 { width: 92%; } .skeleton.w3 { width: 76%; }
+  .msg { font: 17px/1.5 "Newsreader", serif; color: var(--ink-2); margin: 10px 0; }
+  .text-btn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 600; font-size: 13px; }
+  .text-btn:hover { text-decoration: underline; }
+
+  .history { margin-top: 36px; }
+  .history-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .history-head h3 { margin: 0; font: 600 11px/1 "Hanken Grotesk", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+  .history-head h3 span { font-variant-numeric: tabular-nums; margin-left: 6px; color: var(--ink-3); font-weight: 500; }
+  .hist { list-style: none; margin: 0; padding: 0; }
+  .hist li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+  .hist .h-word { justify-self: start; border: 0; background: none; padding: 0; font: 600 16.5px "Newsreader", serif; color: var(--ink); text-align: left; }
+  .hist .h-word:hover { color: var(--accent); }
+  .hist .h-page { border: 0; background: none; padding: 0; font: italic 13px "Newsreader", serif; color: var(--ink-3); font-variant-numeric: oldstyle-nums; }
+  .hist .h-page:hover { color: var(--accent); }
+  .hist .h-ctx { grid-column: 1 / -1; font: italic 14px/1.45 "Newsreader", serif; color: var(--ink-2); }
+  .hist mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .hist-empty { font: italic 15px/1.5 "Newsreader", serif; color: var(--ink-3); margin: 8px 0 0; }
+
+  /* ---------- Abas do painel e lista de marcações ---------- */
+  .panel-tabs { margin: 0; padding: 0 24px; flex: none; gap: 26px; }
+  .panel-tabs button { padding-top: 16px; font-size: 13.5px; }
+  .panel-tabs span { font-variant-numeric: tabular-nums; color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+  .marks-tools { display: flex; gap: 14px; align-items: center; }
+  .marks-tools input {
+    flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--rule);
+    background: var(--page); color: var(--ink); font: 16px "Newsreader", serif;
+  }
+  .marks-tools input::placeholder { color: var(--ink-3); font-style: italic; }
+  .marks-tools input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .mk-page { margin: 26px 0 2px; }
+  .mk-page button { border: 0; background: none; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+  .mk-page button:hover { text-decoration: underline; }
+  .mk { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .mk-text { display: block; width: 100%; border: 0; background: none; padding: 0; text-align: left; color: var(--ink); font: 17px/1.5 "Newsreader", serif; }
+  .mk-text > span { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  /* traço de marca-texto na cor do destaque, linha a linha */
+  .mk-hl {
+    background: linear-gradient(to top, color-mix(in oklch, var(--c) 70%, transparent) 0 38%, transparent 38%);
+    -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 0 2px; margin: 0 -2px;
+    transition: background-size .2s;
+  }
+  .mk-text:hover .mk-hl { background: linear-gradient(to top, color-mix(in oklch, var(--c) 70%, transparent) 0 100%, transparent 100%); }
+  /* anotação já escrita aparece como texto; a caixa só surge ao editar */
+  .mk-note {
+    display: block; width: calc(100% + 16px); margin: 6px -8px 0; padding: 4px 8px; resize: none; overflow: hidden;
+    field-sizing: content; min-height: 0;
+    border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink-2);
+    font: italic 16px/1.5 "Newsreader", serif; cursor: text; transition: background .15s, border-color .15s;
+  }
+  .mk-note[hidden] { display: none; }
+  .mk-note:hover { background: var(--accent-soft); }
+  .mk-note:focus, .mk-note:placeholder-shown { outline: none; background: var(--page); border-color: var(--rule); color: var(--ink); }
+  .mk-note:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .mk-actions { display: flex; gap: 18px; margin-top: 6px; }
+  .mk { position: relative; }
+  /* com anotação, "Apagar" vai para o canto e some a linha extra de ações */
+  .mk-actions:not(:has([data-add-note])) { display: contents; }
+  .mk-actions:not(:has([data-add-note])) [data-del-mark] { position: absolute; top: 17px; right: 0; padding-left: 10px; background: var(--surface); }
+  .mk [data-del-mark] { opacity: 0; transition: opacity .15s; }
+  .mk:hover [data-del-mark], .mk:focus-within [data-del-mark] { opacity: 1; }
+  @media (hover: none) { .mk [data-del-mark] { opacity: 1; } }
+  .text-btn.muted { color: var(--ink-3); font-weight: 500; }
+  .mk-bm { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--ink-2); font-size: 14px; }
+  .mk-bm svg { width: 14px; height: 14px; color: var(--accent); vertical-align: -2px; margin-right: 6px; }
+
+  .passage-pt { font: 18px/1.55 "Newsreader", serif; margin: 14px 0 0; }
+  .sel-pop {
+    position: fixed; z-index: 15; display: flex; padding: 4px; gap: 2px; border-radius: 10px;
+    background: var(--ink); box-shadow: 0 8px 24px -8px oklch(0.2 0.03 60 / 0.45);
+    animation: rise .18s var(--ease) both;
+  }
+  .sel-pop[hidden] { display: none; }
+  .sel-pop button {
+    border: 0; background: none; color: var(--surface); font-weight: 600; font-size: 13px;
+    padding: 7px 12px; border-radius: 7px;
+  }
+  .sel-pop button:hover { background: color-mix(in oklch, var(--surface) 16%, transparent); }
+  .sel-pop button[hidden], .sel-pop .pop-sep[hidden] { display: none; }
+  .pop-sep { width: 1px; margin: 6px 4px; background: color-mix(in oklch, var(--surface) 25%, transparent); }
+  .sel-pop .dot { width: 30px; padding: 0; display: grid; place-items: center; }
+  .sel-pop .dot::before { content: ""; width: 15px; height: 15px; border-radius: 50%; background: var(--c); }
+  .sel-pop .dot[aria-pressed="true"]::before { box-shadow: 0 0 0 2px var(--ink), 0 0 0 3.5px var(--surface); }
+  .note-tip {
+    position: fixed; z-index: 14; max-width: min(320px, calc(100vw - 16px)); padding: 10px 14px 12px; pointer-events: none;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+    box-shadow: 0 10px 28px -10px oklch(0.2 0.03 60 / 0.4); animation: rise .18s var(--ease) both;
+  }
+  .note-tip[hidden] { display: none; }
+  .note-tip-label { display: block; margin-bottom: 4px; font: 600 10.5px/1 "Hanken Grotesk", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .note-tip p { margin: 0; font: italic 16px/1.45 "Newsreader", serif; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .toast-btn { margin-left: 12px; border: 0; background: none; padding: 0; color: inherit; font-weight: 700; text-decoration: underline; }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 10px; max-width: calc(100vw - 32px);
+    transition: opacity .25s var(--ease), transform .25s var(--ease); z-index: 20;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes pulse { 50% { opacity: .45; } }
+  @keyframes flash { 50% { opacity: 1; } }
+  @keyframes drop { from { transform: translateY(-10px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ---------- Telas pequenas: dicionário vira gaveta inferior ---------- */
+  @media (max-width: 820px) {
+    .bar { flex-wrap: wrap; gap: 10px 12px; }
+    .book { display: none; }
+    .brand { flex: 1; }
+    .controls { width: 100%; justify-content: space-between; gap: 8px; order: 3; }
+    .controls .sep { display: none; }
+    .primary .label { display: none; }
+    .stage { grid-template-columns: 1fr; }
+    .panel {
+      position: fixed; left: 0; right: 0; bottom: 0; width: auto; height: min(72vh, 620px); z-index: 10;
+      border-left: 0; border-top: 1px solid var(--rule); border-radius: 18px 18px 0 0;
+      box-shadow: 0 -18px 40px -20px oklch(0.2 0.03 60 / 0.4);
+      transform: translateY(0); transition: transform .3s var(--ease);
+    }
+    body[data-panel="closed"] .panel { display: flex; transform: translateY(105%); }
+    .sheet-handle { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--rule); margin: 10px auto 0; border: 0; padding: 0; }
+    .panel-scroll { padding: 14px 16px 32px; }
+    .panel-tabs { padding: 0 16px; }
+    .empty { padding: 0 16px; }
+    .book-item:first-child .book-open { grid-template-columns: 112px 1fr; column-gap: 18px; }
+    .book-item:first-child .book-title { margin-top: 4px; }
+  }
+</style>
+</head>
+<body data-panel="open">
+<header class="bar">
+  <button class="brand" id="homeBtn" title="Voltar à estante">Marginália<b>.</b></button>
+  <div class="book" id="bookTitle"></div>
+  <nav class="controls" aria-label="Controles de leitura">
+    <div class="pager">
+      <input id="pageInput" inputmode="numeric" aria-label="Página atual" disabled value="—">
+      <span>de <span id="pageCount">—</span></span>
+    </div>
+    <button class="ghost" id="bookmarkBtn" aria-pressed="false" title="Marcar esta página (B)" aria-label="Marcar esta página" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4h10v16l-5-3.6L7 20z"/></svg>
+    </button>
+    <span class="sep"></span>
+    <div class="group">
+      <button class="ghost" id="zoomOut" aria-label="Diminuir" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+      <button class="ghost" id="zoomLabel" title="Ajustar à largura" disabled>—</button>
+      <button class="ghost" id="zoomIn" aria-label="Aumentar" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+    </div>
+    <span class="sep"></span>
+    <div class="themes" role="group" aria-label="Modo de leitura">
+      <button class="swatch" data-set="paper" title="Papel" aria-label="Papel"></button>
+      <button class="swatch" data-set="sepia" title="Sépia" aria-label="Sépia"></button>
+      <button class="swatch" data-set="night" title="Noite" aria-label="Noite"></button>
+    </div>
+    <span class="sep"></span>
+    <label class="primary" title="Abrir PDF">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10l2 2h6.5A1.5 1.5 0 0 1 20 7.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z"/></svg>
+      <span class="label">Abrir livro</span>
+      <input id="file" type="file" accept="application/pdf,.pdf" hidden>
+    </label>
+    <button class="ghost" id="panelToggle" aria-pressed="true" title="Painel (D)" aria-label="Mostrar ou ocultar o painel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM13 4h5.5c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5H13z"/><path d="M15.5 8h2M15.5 11h2"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main class="stage">
+  <section class="viewer" id="viewer" aria-label="Livro">
+    <div class="empty" id="empty">
+      <p class="file-warning" id="fileWarning" hidden>
+        <strong>Você abriu o arquivo direto.</strong> Assim o navegador mostra uma estante separada, sem seus livros e marcações.
+        Feche esta aba e abra pelo <em>Abrir leitor.bat</em>, na pasta do leitor.
+      </p>
+      <section id="shelf" hidden>
+        <p class="eyebrow">Sua estante</p>
+        <div class="shelf-head">
+          <h2>Continuar lendo</h2>
+          <div class="shelf-actions">
+            <label class="text-btn">Importar backup<input id="importFile" type="file" accept=".json,application/json" hidden></label>
+            <label class="primary">Abrir outro livro<input id="file3" type="file" accept="application/pdf,.pdf" hidden></label>
+          </div>
+        </div>
+        <ol class="books" id="books"></ol>
+        <p class="fine">Os livros, destaques e anotações ficam salvos só neste navegador. Use “Exportar” na aba Marcações para ter uma cópia.</p>
+      </section>
+      <section id="hero">
+      <p class="eyebrow">Leitor com dicionário</p>
+      <h2>Abra um livro <em>e leia sem sair da página.</em></h2>
+      <p>Dê dois cliques em qualquer palavra em inglês e o significado aparece ao lado. Tudo o que você consultar fica guardado, com a frase em que a palavra apareceu.</p>
+      <div class="drop">
+        <label class="primary">Escolher PDF<input id="file2" type="file" accept="application/pdf,.pdf" hidden></label>
+        <span>ou arraste o arquivo para cá</span>
+        <label class="text-btn">Importar backup<input id="importFile2" type="file" accept=".json,application/json" hidden></label>
+      </div>
+      <ul class="keys">
+        <li><kbd>/</kbd> pesquisar palavra</li>
+        <li><kbd>←</kbd> <kbd>→</kbd> mudar de página</li>
+        <li><kbd>D</kbd> mostrar dicionário</li>
+        <li><kbd>B</kbd> marcar página</li>
+        <li>selecione um trecho para destacar, anotar, ver uma expressão ou traduzir</li>
+      </ul>
+      <p class="fine">O PDF precisa ter texto selecionável. Livros escaneados (só imagem) não funcionam. O livro e as marcações ficam salvos só neste navegador; só as palavras consultadas (e as frases que você pedir para traduzir) são enviadas ao Wiktionary e ao MyMemory.</p>
+      </section>
+    </div>
+    <div class="pages" id="pages"></div>
+  </section>
+
+  <aside class="panel" id="panel" aria-label="Dicionário">
+    <button class="sheet-handle" id="sheetHandle" aria-label="Fechar painel"></button>
+    <div class="tabs panel-tabs" role="tablist" aria-label="Painel">
+      <button role="tab" data-pane="dict" aria-selected="true">Dicionário</button>
+      <button role="tab" data-pane="marks" aria-selected="false">Marcações<span id="marksCount"></span></button>
+    </div>
+    <div class="panel-scroll">
+      <div id="paneMarks" role="tabpanel" hidden>
+        <div class="marks-tools">
+          <input id="marksFilter" type="search" placeholder="Buscar nos destaques e notas" aria-label="Buscar nas marcações">
+          <button class="text-btn" id="exportMarks" hidden title="Baixa um texto com os destaques e anotações">Exportar</button>
+          <button class="text-btn" id="backupBook" hidden title="Baixa um arquivo para levar este livro (marcações, posição e palavras) para outro aparelho">Backup</button>
+        </div>
+        <div id="marksList"></div>
+      </div>
+      <div id="paneDict" role="tabpanel">
+      <form class="search" id="searchForm" role="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+        <input id="search" type="search" placeholder="Palavra, expressão ou frase" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Pesquisar palavra, expressão ou frase em inglês">
+        <kbd>/</kbd>
+      </form>
+      <div class="entry" id="entry" aria-live="polite">
+        <p class="intro">Dê dois cliques numa palavra do livro, selecione uma expressão ou frase, ou pesquise acima.</p>
+      </div>
+      <section class="history">
+        <div class="history-head">
+          <h3>Consultadas<span id="histCount"></span></h3>
+          <button class="text-btn" id="clearHist" hidden>Limpar</button>
+        </div>
+        <ol class="hist" id="histList"></ol>
+      </section>
+      </div>
+    </div>
+  </aside>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<div class="sel-pop" id="selPop" hidden>
+  <button id="selMeaning">Significado</button>
+  <button id="selTranslate">Traduzir</button>
+  <span class="pop-sep" id="selSep"></span>
+  <button class="dot" data-hl="yellow" data-color="yellow" title="Destacar em amarelo" aria-label="Destacar em amarelo"></button>
+  <button class="dot" data-hl="green" data-color="green" title="Destacar em verde" aria-label="Destacar em verde"></button>
+  <button class="dot" data-hl="blue" data-color="blue" title="Destacar em azul" aria-label="Destacar em azul"></button>
+  <button class="dot" data-hl="pink" data-color="pink" title="Destacar em rosa" aria-label="Destacar em rosa"></button>
+  <button id="selNote">Anotar</button>
+</div>
+<div class="note-tip" id="noteTip" hidden role="tooltip">
+  <span class="note-tip-label">Sua anotação</span>
+  <p id="noteTipText"></p>
+</div>
+<div class="sel-pop" id="hlPop" hidden>
+  <button class="dot" data-recolor="yellow" data-color="yellow" aria-label="Amarelo"></button>
+  <button class="dot" data-recolor="green" data-color="green" aria-label="Verde"></button>
+  <button class="dot" data-recolor="blue" data-color="blue" aria-label="Azul"></button>
+  <button class="dot" data-recolor="pink" data-color="pink" aria-label="Rosa"></button>
+  <span class="pop-sep"></span>
+  <button id="hlNote">Anotar</button>
+  <button id="hlDelete">Apagar</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const API = 'https://en.wiktionary.org/api/rest_v1/page/definition/';
+const $ = id => document.getElementById(id);
+const viewer = $('viewer'), pagesEl = $('pages');
+const isMobile = () => matchMedia('(max-width: 820px)').matches;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// localStorage só para conveniências do leitor; qualquer falha é ignorada
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+const prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const prefs = Object.assign({ theme: prefersDark ? 'night' : 'paper', panel: true, scale: 1.3, fit: true }, store.get('marginalia.prefs', {}));
+const savePrefs = () => store.set('marginalia.prefs', prefs);
+
+const S = { pdf: null, book: null, fileKey: null, base: null, pages: [], marks: [], scale: prefs.scale, fit: prefs.fit, current: 1 };
+let observer = null;
+let history = store.get('marginalia.history', []);
+const cache = new Map();   // palavra -> verbete (ou null se não existe)
+
+/* ================= Armazenamento no navegador (IndexedDB) =================
+   books: dados do livro (título, onde parou, capa)   files: o PDF em si   marks: destaques e marcadores */
+let dbPromise = null;
+function db() {
+  return dbPromise ||= new Promise((resolve, reject) => {
+    const req = indexedDB.open('marginalia', 1);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      d.createObjectStore('books', { keyPath: 'id' });
+      d.createObjectStore('files');
+      d.createObjectStore('marks', { keyPath: 'id' }).createIndex('book', 'book');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idb(storeName, mode, fn) {
+  const d = await db();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(storeName, mode);
+    const req = fn(tx.objectStore(storeName));
+    tx.oncomplete = () => resolve(req?.result);
+    tx.onerror = tx.onabort = () => reject(tx.error);
+  });
+}
+const booksDb = {
+  all: () => idb('books', 'readonly', s => s.getAll()),
+  get: id => idb('books', 'readonly', s => s.get(id)),
+  put: book => idb('books', 'readwrite', s => s.put(book)),
+};
+const filesDb = {
+  get: id => idb('files', 'readonly', s => s.get(id)),
+  has: async id => (await idb('files', 'readonly', s => s.count(id))) > 0,
+  put: (id, blob) => idb('files', 'readwrite', s => s.put(blob, id)),
+};
+const marksDb = {
+  forBook: id => idb('marks', 'readonly', s => s.index('book').getAll(id)),
+  put: mark => idb('marks', 'readwrite', s => s.put(mark)),
+  remove: id => idb('marks', 'readwrite', s => s.delete(id)),
+  putMany: marks => idb('marks', 'readwrite', s => { marks.forEach(m => s.put(m)); }),
+};
+// Remove livro, arquivo e marcações numa única transação (ou tudo, ou nada)
+async function removeBookData(id) {
+  const d = await db();
+  await new Promise((resolve, reject) => {
+    const tx = d.transaction(['books', 'files', 'marks'], 'readwrite');
+    tx.objectStore('books').delete(id);
+    tx.objectStore('files').delete(id);
+    tx.objectStore('marks').index('book').openCursor(IDBKeyRange.only(id)).onsuccess = e => {
+      const cur = e.target.result; if (cur) { cur.delete(); cur.continue(); }
+    };
+    tx.oncomplete = resolve;
+    tx.onerror = tx.onabort = () => reject(tx.error);
+  });
+}
+const persist = (promise, msg = 'Não consegui salvar neste navegador.') => promise.catch(err => { console.error(err); toast(msg); });
+const uid = () => crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+// O worker do pdf.js vem de outro domínio; o navegador só o aceita via blob.
+const workerReady = fetch(PDFJS_WORKER).then(r => r.text()).then(src => {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+});
+
+/* ================= Tema e painel ================= */
+function setTheme(t) {
+  prefs.theme = t; savePrefs();
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll('.swatch').forEach(b => b.setAttribute('aria-pressed', b.dataset.set === t));
+}
+function setPanel(open) {
+  document.body.dataset.panel = open ? 'open' : 'closed';
+  $('panelToggle').setAttribute('aria-pressed', open);
+  if (!isMobile()) { prefs.panel = open; savePrefs(); }
+}
+const panelOpen = () => document.body.dataset.panel === 'open';
+document.querySelectorAll('.swatch').forEach(b => b.onclick = () => setTheme(b.dataset.set));
+$('panelToggle').onclick = () => setPanel(!panelOpen());
+$('sheetHandle').onclick = () => setPanel(false);
+setTheme(prefs.theme);
+setPanel(isMobile() ? false : prefs.panel);
+
+let toastTimer;
+function toast(msg, action = null) {   // action: { label, run } → botão (ex.: "Desfazer")
+  const t = $('toast');
+  t.innerHTML = esc(msg) + (action ? `<button class="toast-btn">${esc(action.label)}</button>` : '');
+  if (action) t.querySelector('button').onclick = () => { hide(); action.run(); };
+  t.style.pointerEvents = action ? 'auto' : 'none';
+  t.classList.add('show');
+  const hide = () => { t.classList.remove('show'); t.style.pointerEvents = 'none'; };
+  clearTimeout(toastTimer); toastTimer = setTimeout(hide, action ? 6000 : 4000);
+}
+
+/* ================= Abrir livro ================= */
+['file', 'file2', 'file3'].forEach(id => $(id).onchange = e => { openBook(e.target.files[0]); e.target.value = ''; });
+document.addEventListener('dragover', e => { e.preventDefault(); viewer.classList.add('dragging'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) viewer.classList.remove('dragging'); });
+document.addEventListener('drop', e => { e.preventDefault(); viewer.classList.remove('dragging'); openBook(e.dataTransfer.files[0]); });
+
+const READER_CONTROLS = ['pageInput', 'zoomOut', 'zoomIn', 'zoomLabel', 'bookmarkBtn'];
+
+// Arquivo escolhido pelo usuário: abre e guarda na estante
+async function openBook(file) {
+  if (!file) return;
+  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { toast('Esse arquivo não é um PDF.'); return; }
+  const pdf = await loadPdf(file);
+  if (!pdf) return;
+  const id = pdf.fingerprints[0];   // identifica o livro pelo conteúdo: renomear o arquivo não perde as marcações
+  const saved = await booksDb.get(id).catch(() => null);
+  const book = saved || {
+    id, title: await pdfTitle(pdf, file.name), fileName: file.name, size: file.size, pages: pdf.numPages,
+    lastPage: store.get('marginalia.page.' + file.name + ':' + file.size, 1), lastFrac: 0, addedAt: Date.now(), cover: null,
+  };
+  book.updatedAt = Date.now();
+  await showBook(pdf, book);
+  saveToShelf(book, file);
+}
+
+// Livro da estante: o PDF já está guardado no navegador
+async function openFromShelf(id) {
+  const [book, blob] = await Promise.all([booksDb.get(id), filesDb.get(id)]).catch(() => []);
+  if (!book) { toast('Não encontrei este livro.'); renderShelf(); return; }
+  if (!blob) { toast(`Escolha o PDF de “${book.title}” para abrir com suas marcações.`); $('file3').click(); return; }
+  const pdf = await loadPdf(blob);
+  if (!pdf) return;
+  book.updatedAt = Date.now();
+  await showBook(pdf, book);
+  persist(booksDb.put(book));
+}
+
+async function loadPdf(blob) {
+  $('bookTitle').textContent = 'Abrindo…';
+  try {
+    await workerReady;
+    return await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+  } catch (err) {
+    $('bookTitle').textContent = S.book?.title || '';
+    toast('Não consegui abrir este PDF. ' + (err.message || ''));
+    return null;
+  }
+}
+
+async function pdfTitle(pdf, fileName) {
+  try { const t = (await pdf.getMetadata()).info?.Title?.trim(); if (t) return t; } catch {}
+  return fileName.replace(/\.pdf$/i, '');
+}
+
+async function showBook(pdf, book) {
+  if (S.pdf) { savePosition(); S.pdf.destroy(); }
+  S.pdf = pdf; S.book = book; S.fileKey = book.id;
+  S.base = (await pdf.getPage(1)).getViewport({ scale: 1 });
+  S.marks = await marksDb.forBook(book.id).catch(() => []);
+  $('bookTitle').textContent = book.title;
+  document.title = book.title + ' — Marginália';
+  $('empty').hidden = true;
+  $('pageCount').textContent = pdf.numPages;
+  READER_CONTROLS.forEach(id => $(id).disabled = false);
+  buildPages();
+  resumeAt(book.lastPage || 1, book.lastFrac || 0);
+  trackPage();
+  drawMarks(); drawHistory();
+  if ((book.lastPage || 1) > 1) toast(`Continuando da página ${book.lastPage}.`);
+}
+
+// Capa + dados na estante; o PDF só é gravado se ainda não estiver salvo
+async function saveToShelf(book, file) {
+  try {
+    if (!book.cover) book.cover = await makeCover();
+    await booksDb.put(book);
+  } catch (err) { console.error(err); toast('Não consegui salvar este livro no navegador.'); return; }
+  try { if (!(await filesDb.has(book.id))) await filesDb.put(book.id, file); }
+  catch (err) { console.error(err); toast('Sem espaço para guardar o PDF neste navegador. As marcações continuam salvas.'); }
+}
+
+async function makeCover() {
+  const page = await S.pdf.getPage(1);
+  const vp = page.getViewport({ scale: 300 / page.getViewport({ scale: 1 }).width });
+  const c = document.createElement('canvas');
+  c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  return c.toDataURL('image/jpeg', 0.82);
+}
+
+// Onde parei: página + posição dentro dela
+let posTimer;
+function savePosition() {
+  if (!S.book || !S.pages.length) return;
+  const p = S.pages[S.current - 1];
+  S.book.lastPage = S.current;
+  S.book.lastFrac = clamp((viewer.scrollTop - p.el.offsetTop) / p.el.offsetHeight, 0, 1);
+  S.book.updatedAt = Date.now();
+  booksDb.put(S.book).catch(err => console.error(err));
+}
+function resumeAt(page, frac) {
+  const p = S.pages[clamp(page, 1, S.pages.length) - 1];
+  viewer.scrollTop = p.el.offsetTop + frac * p.el.offsetHeight;
+}
+viewer.addEventListener('scroll', () => { clearTimeout(posTimer); posTimer = setTimeout(savePosition, 600); }, { passive: true });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') savePosition(); });
+
+/* ================= Estante ================= */
+async function showShelf() {
+  if (S.pdf) { savePosition(); S.pdf.destroy(); }
+  observer?.disconnect();
+  pagesEl.innerHTML = '';
+  Object.assign(S, { pdf: null, book: null, fileKey: null, pages: [], marks: [], current: 1 });
+  READER_CONTROLS.forEach(id => $(id).disabled = true);
+  $('pageInput').value = '—'; $('pageCount').textContent = '—';
+  $('bookTitle').textContent = ''; document.title = 'Marginália';
+  $('empty').hidden = false; viewer.scrollTop = 0;
+  hideSelPop(); hideHlPop();
+  await renderShelf();
+  drawMarks(); drawHistory();
+}
+
+function relativeDay(t) {
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(t).setHours(0, 0, 0, 0)) / 864e5);
+  if (days <= 0) return 'hoje';
+  if (days === 1) return 'ontem';
+  if (days < 30) return `há ${days} dias`;
+  return new Date(t).toLocaleDateString('pt-BR');
+}
+
+async function renderShelf() {
+  let list = [];
+  try { list = (await booksDb.all()).sort((a, b) => b.updatedAt - a.updatedAt); } catch (err) { console.error(err); }
+  $('hero').hidden = list.length > 0;
+  $('shelf').hidden = !list.length;
+  $('books').innerHTML = list.map(b => {
+    const pct = Math.round(((b.lastPage || 1) / b.pages) * 100);
+    return `<li class="book-item">
+      <button class="book-open" data-open-book="${esc(b.id)}">
+        <span class="cover">${b.cover ? `<img src="${b.cover}" alt="">` : ''}</span>
+        <span class="book-title">${esc(b.title)}</span>
+        <span class="book-meta">p. ${b.lastPage || 1} de ${b.pages} · ${pct}% · ${relativeDay(b.updatedAt)}</span>
+        <span class="progress"><span style="width:${pct}%"></span></span>
+        <span class="resume">Continuar da página ${b.lastPage || 1} →</span>
+      </button>
+      <button class="text-btn muted book-remove" data-remove-book="${esc(b.id)}">Remover</button>
+    </li>`;
+  }).join('');
+}
+
+async function removeBook(id) {
+  const book = await booksDb.get(id).catch(() => null);
+  if (!book || !confirm(`Remover “${book.title}” da estante?\nOs destaques, anotações e marcadores deste livro também serão apagados.`)) return;
+  try { await removeBookData(id); toast('Livro removido da estante.'); }
+  catch (err) { console.error(err); toast('Não consegui remover o livro.'); }
+  renderShelf();
+}
+$('homeBtn').onclick = showShelf;
+
+/* ================= Páginas (rolagem contínua, desenho sob demanda) ================= */
+function buildPages() {
+  observer?.disconnect();
+  pagesEl.innerHTML = '';
+  S.current = 1;
+  S.pages = Array.from({ length: S.pdf.numPages }, (_, i) => {
+    const el = document.createElement('div');
+    el.className = 'page'; el.dataset.num = i + 1;
+    el.innerHTML = `<canvas></canvas><div class="hl-layer"></div><div class="textLayer"></div><div class="note-layer"></div><span class="folio">${i + 1}</span>`;
+    pagesEl.appendChild(el);
+    const [canvas, hl, tl, notes] = el.children;
+    return { num: i + 1, el, canvas, hl, tl, notes, size: null, token: 0, loading: false, rendered: false, task: null, textTask: null };
+  });
+  // Destaques ficam em % da página: não dependem do zoom nem do desenho do PDF
+  S.pages.forEach(p => drawPageMarks(p.num));
+  // Só desenha as páginas perto da tela; as que se afastam são liberadas da memória
+  observer = new IntersectionObserver(entries => entries.forEach(e => {
+    const p = S.pages[e.target.dataset.num - 1];
+    e.isIntersecting ? renderPage(p) : unrender(p);
+  }), { root: viewer, rootMargin: '1500px 0px' });
+  layout();
+}
+
+function fitScale() {
+  const gutter = isMobile() ? 24 : 96;
+  return clamp(Math.min(viewer.clientWidth - gutter, 880) / S.base.width, 0.4, 4);
+}
+
+function layout() {
+  if (!S.pdf) return;
+  if (S.fit) S.scale = fitScale();
+  for (const p of S.pages) {
+    unrender(p);
+    const size = p.size || S.base;
+    p.el.style.width = size.width * S.scale + 'px';
+    p.el.style.height = size.height * S.scale + 'px';
+    observer.unobserve(p.el); observer.observe(p.el);
+  }
+  $('zoomLabel').textContent = Math.round(S.scale * 100) + '%';
+  $('zoomLabel').setAttribute('aria-pressed', S.fit);
+}
+
+async function renderPage(p) {
+  if (p.rendered || p.loading) return;
+  p.loading = true;
+  const token = p.token, alive = () => token === p.token;
+  try {
+    const page = await S.pdf.getPage(p.num);
+    if (!alive()) return;
+    if (!p.size) { const b = page.getViewport({ scale: 1 }); p.size = { width: b.width, height: b.height }; }
+    const vp = page.getViewport({ scale: S.scale });
+    const dpr = window.devicePixelRatio || 1;
+    p.el.style.width = vp.width + 'px'; p.el.style.height = vp.height + 'px';
+    p.canvas.width = Math.floor(vp.width * dpr); p.canvas.height = Math.floor(vp.height * dpr);
+    p.canvas.style.width = vp.width + 'px'; p.canvas.style.height = vp.height + 'px';
+    p.task = page.render({ canvasContext: p.canvas.getContext('2d'), viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null });
+    await p.task.promise;
+    if (!alive()) return;
+    const text = await page.getTextContent();
+    if (!alive()) return;
+    p.tl.innerHTML = '';
+    p.tl.style.setProperty('--scale-factor', vp.scale);   // os spans usam calc(var(--scale-factor) * Npx)
+    p.textTask = pdfjsLib.renderTextLayer({ textContentSource: text, container: p.tl, viewport: vp });
+    await p.textTask.promise;
+    if (!alive()) return;
+    const end = document.createElement('div'); end.className = 'endOfContent'; p.tl.appendChild(end);
+    p.el.classList.toggle('no-text', !text.items.some(i => i.str && i.str.trim()));
+    p.el.classList.add('ready');
+    p.rendered = true;
+  } catch (err) {
+    if (alive() && err?.name !== 'RenderingCancelledException') console.error('Página', p.num, err);
+  } finally {
+    if (alive()) { p.loading = false; p.task = p.textTask = null; }
+  }
+}
+
+function unrender(p) {
+  p.token++;
+  p.task?.cancel(); p.textTask?.cancel();
+  p.task = p.textTask = null; p.loading = false; p.rendered = false;
+  p.canvas.width = p.canvas.height = 0;
+  p.tl.innerHTML = '';
+  p.el.classList.remove('ready');
+}
+
+// Página atual = a que cruza 40% da altura da tela
+let scrollFrame = 0;
+viewer.addEventListener('scroll', () => {
+  if (!scrollFrame) scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; trackPage(); });
+}, { passive: true });
+function trackPage() {
+  if (!S.pdf) return;
+  const line = viewer.scrollTop + viewer.clientHeight * 0.4;
+  let cur = 1;
+  for (const p of S.pages) { if (p.el.offsetTop <= line) cur = p.num; else break; }
+  if (document.activeElement !== $('pageInput')) $('pageInput').value = cur;
+  if (cur !== S.current) S.current = cur;
+  updateBookmarkBtn();
+}
+function scrollToPage(n, smooth = false) {
+  if (!S.pdf) return;
+  const p = S.pages[clamp(Math.round(n) || 1, 1, S.pages.length) - 1];
+  viewer.scrollTo({ top: p.el.offsetTop - 24, behavior: smooth ? 'smooth' : 'auto' });
+}
+$('pageInput').addEventListener('change', e => { scrollToPage(+e.target.value, true); e.target.blur(); });
+$('pageInput').addEventListener('focus', e => e.target.select());
+
+/* ================= Zoom ================= */
+// Mantém o mesmo trecho na tela quando o tamanho das páginas muda
+function keepPlace(fn) {
+  const p = S.pages[S.current - 1];
+  const frac = p ? (viewer.scrollTop - p.el.offsetTop) / p.el.offsetHeight : 0;
+  fn();
+  if (p) viewer.scrollTop = p.el.offsetTop + frac * p.el.offsetHeight;
+}
+function setZoom(scale, fit = false) {
+  keepPlace(() => { S.fit = fit; if (!fit) S.scale = clamp(scale, 0.4, 4); layout(); });
+  prefs.fit = S.fit; prefs.scale = S.scale; savePrefs();
+}
+$('zoomIn').onclick = () => setZoom(S.scale * 1.15);
+$('zoomOut').onclick = () => setZoom(S.scale / 1.15);
+$('zoomLabel').onclick = () => setZoom(S.scale, true);
+let resizeTimer, lastWidth = viewer.clientWidth;
+new ResizeObserver(() => {
+  if (viewer.clientWidth === lastWidth) return;
+  lastWidth = viewer.clientWidth;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (S.pdf && S.fit) keepPlace(layout); }, 150);
+}).observe(viewer);
+
+/* ================= Seleção de palavra no livro ================= */
+$('pages').addEventListener('mousedown', e => e.target.closest('.textLayer')?.classList.add('selecting'));
+// Cancelar o mouseup impede o "mini menu" do Edge (Copilot, copiar, pesquisar) de abrir sobre o nosso menu.
+// A seleção, o clique e o duplo clique continuam funcionando normalmente.
+$('pages').addEventListener('mouseup', e => e.preventDefault());
+document.addEventListener('mouseup', () => document.querySelectorAll('.textLayer.selecting').forEach(t => t.classList.remove('selecting')));
+
+// Pega a palavra exatamente sob o cursor (não depende da seleção nativa do navegador)
+const isWordChar = ch => /[A-Za-z'’-]/.test(ch);
+function wordAtPoint(x, y) {
+  let node, offset;
+  if (document.caretPositionFromPoint) {
+    const p = document.caretPositionFromPoint(x, y); if (!p) return null;
+    node = p.offsetNode; offset = p.offset;
+  } else {
+    const r = document.caretRangeFromPoint(x, y); if (!r) return null;
+    node = r.startContainer; offset = r.startOffset;
+  }
+  if (node.nodeType !== Node.TEXT_NODE) return null;
+  const text = node.textContent;
+  let start = offset, end = offset;
+  if (!isWordChar(text[start] || '') && isWordChar(text[start - 1] || '')) start--, end--;   // cursor logo após a última letra
+  while (start > 0 && isWordChar(text[start - 1])) start--;
+  while (end < text.length && isWordChar(text[end])) end++;
+  while (start < end && !/[A-Za-z]/.test(text[start])) start++;      // tira apóstrofo/hífen das pontas
+  while (end > start && !/[A-Za-z]/.test(text[end - 1])) end--;
+  if (end - start < 2) return null;
+  const range = document.createRange(); range.setStart(node, start); range.setEnd(node, end);
+  return { word: text.slice(start, end), range };
+}
+
+// Linha inteira onde está o nó (PDFs justificados quebram a linha em vários spans, às vezes um por palavra)
+function lineText(node) {
+  const span = (node.nodeType === Node.TEXT_NODE ? node.parentElement : node)?.closest('span');
+  const layer = span?.closest('.textLayer');
+  if (!layer) return '';
+  return [...layer.querySelectorAll('span:not(.markedContent)')]
+    .filter(s => s.style.top === span.style.top)
+    .map(s => s.textContent).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+$('pages').addEventListener('dblclick', e => {
+  if (!e.target.closest('.textLayer')) return;
+  const hit = wordAtPoint(e.clientX, e.clientY);
+  if (!hit) return;
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(hit.range);   // destaca exatamente o que foi consultado
+  const page = +e.target.closest('.page').dataset.num;
+  lookup(hit.word, { page, context: lineText(hit.range.startContainer), form: hit.word });
+});
+
+// Seleção de várias palavras → menu flutuante com "Significado" (expressões curtas) e "Traduzir"
+let selPointerDown = false, selTimer, selData = null;
+document.addEventListener('pointerdown', e => { if (e.target.closest?.('.sel-pop')) return; selPointerDown = true; hideSelPop(); hideHlPop(); hideNoteTip(); });
+document.addEventListener('pointerup', e => {
+  if (e.target.closest?.('.sel-pop')) return;   // clique no próprio menu não reabre o menu
+  selPointerDown = false; clearTimeout(selTimer); selTimer = setTimeout(checkSelection, 10);
+});
+document.addEventListener('selectionchange', () => { clearTimeout(selTimer); selTimer = setTimeout(checkSelection, 350); });   // toque no celular
+viewer.addEventListener('scroll', hideSelPop, { passive: true });
+
+function selectedPassage() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  const start = range.startContainer.parentElement?.closest('.page');
+  if (!start || !range.endContainer.parentElement?.closest('.textLayer')) return null;
+  // junta as linhas do PDF: "some-\nthing" vira "something"
+  const text = sel.toString().replace(/(\w)-\s*\n\s*(\w)/g, '$1$2').replace(/\s+/g, ' ').trim();
+  const words = text.split(' ').filter(w => /[A-Za-z]/.test(w)).length;
+  if (!words) return null;
+  return { text, words, range, pageEl: start, page: +start.dataset.num, context: lineText(range.startContainer) };
+}
+
+function checkSelection() {
+  if (selPointerDown) return;
+  selData = selectedPassage();
+  if (!selData) { hideSelPop(); return; }
+  // 1 palavra: o duplo clique já mostra o significado; o menu oferece só destacar/anotar
+  $('selMeaning').hidden = selData.words > 4 || (selData.words < 2 && !isTouch());
+  $('selTranslate').hidden = selData.words < 2;
+  $('selSep').hidden = $('selMeaning').hidden && $('selTranslate').hidden;
+  placePop($('selPop'), selData.range.getBoundingClientRect());
+}
+const isTouch = () => matchMedia('(pointer: coarse)').matches;
+function placePop(pop, r) {
+  pop.hidden = false;
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8) + 'px';
+  // no celular o menu do sistema (copiar, compartilhar) abre em cima da seleção: o nosso vai embaixo
+  const below = isTouch() || r.top - h - 10 < 64;
+  pop.style.top = clamp(below ? r.bottom + 14 : r.top - h - 10, 8, innerHeight - h - 8) + 'px';
+}
+function hideSelPop() { $('selPop').hidden = true; }
+$('selMeaning').onclick = () => { hideSelPop(); lookup(selData.text, { page: selData.page, context: selData.context, form: selData.text }); };
+$('selTranslate').onclick = () => { hideSelPop(); translatePassage(selData.text); };
+document.querySelectorAll('#selPop [data-hl]').forEach(b => b.onclick = () => createHighlight(b.dataset.hl));
+$('selNote').onclick = () => { const m = createHighlight('yellow'); if (m) openNote(m.id); };
+
+/* ================= Destaques, anotações e marcadores ================= */
+// Retângulos da seleção em % da página, um por linha (o PDF quebra a linha em vários pedaços)
+function selectionRects(range, pageEl) {
+  const pr = pageEl.getBoundingClientRect();
+  const rects = [...range.getClientRects()].filter(r =>
+    r.width > 1 && r.height > 1 && r.height < pr.height * 0.1 && r.top + r.height / 2 > pr.top && r.top + r.height / 2 < pr.bottom);
+  const lines = [];
+  for (const r of rects.sort((a, b) => a.top - b.top || a.left - b.left)) {
+    const line = lines.find(l => Math.abs(l.top - r.top) < r.height * 0.5);
+    if (line) Object.assign(line, { left: Math.min(line.left, r.left), right: Math.max(line.right, r.right), top: Math.min(line.top, r.top), bottom: Math.max(line.bottom, r.bottom) });
+    else lines.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+  }
+  return lines.map(l => ({ x: (l.left - pr.left) / pr.width, y: (l.top - pr.top) / pr.height, w: (l.right - l.left) / pr.width, h: (l.bottom - l.top) / pr.height }));
+}
+
+function createHighlight(color) {
+  hideSelPop();
+  if (!selData || !S.book) return null;
+  const rects = selectionRects(selData.range, selData.pageEl);
+  if (!rects.length) { toast('Não consegui marcar este trecho.'); return null; }
+  const mark = { id: uid(), book: S.book.id, type: 'highlight', page: selData.page, color, text: selData.text, rects, note: '', createdAt: Date.now() };
+  window.getSelection().removeAllRanges();
+  saveMark(mark);
+  return mark;
+}
+
+function saveMark(mark, { redrawList = true } = {}) {
+  const i = S.marks.findIndex(m => m.id === mark.id);
+  if (i < 0) S.marks.push(mark); else S.marks[i] = mark;
+  drawPageMarks(mark.page);
+  if (redrawList) drawMarks();
+  updateBookmarkBtn();
+  persist(marksDb.put(mark), 'Não consegui salvar a marcação neste navegador.');
+}
+function deleteMark(mark, undo = true) {
+  S.marks = S.marks.filter(m => m.id !== mark.id);
+  drawPageMarks(mark.page); drawMarks(); updateBookmarkBtn();
+  persist(marksDb.remove(mark.id));
+  if (undo) toast(mark.type === 'bookmark' ? 'Marcador removido.' : 'Destaque apagado.', { label: 'Desfazer', run: () => saveMark(mark) });
+}
+const findMark = id => S.marks.find(m => m.id === id);
+
+const NOTE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19h4L19 9l-4-4L5 15z"/></svg>';
+function drawPageMarks(num) {
+  const p = S.pages[num - 1];
+  if (!p) return;
+  const marks = S.marks.filter(m => m.page === num);
+  const hls = marks.filter(m => m.type === 'highlight');
+  p.hl.innerHTML = hls.map(m => m.rects.map(r =>
+    `<div class="hl" data-id="${m.id}" data-color="${m.color}" style="left:${r.x * 100}%;top:${r.y * 100}%;width:${r.w * 100}%;height:${r.h * 100}%"></div>`).join('')).join('');
+  p.notes.innerHTML = hls.filter(m => m.note.trim()).map(m =>
+    `<button class="hl-note" data-open-note="${m.id}" style="top:${m.rects[0].y * 100}%" aria-label="Anotação: ${esc(m.note.slice(0, 120))}">${NOTE_ICON}</button>`).join('');
+  p.el.classList.toggle('bookmarked', marks.some(m => m.type === 'bookmark'));
+}
+
+// Clique simples sobre um destaque abre o menu dele (cor, anotar, apagar)
+let hlTarget = null;
+function markAt(pageEl, clientX, clientY) {
+  const pr = pageEl.getBoundingClientRect();
+  const x = (clientX - pr.left) / pr.width, y = (clientY - pr.top) / pr.height;
+  return S.marks.find(m => m.type === 'highlight' && m.page === +pageEl.dataset.num &&
+    m.rects.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h));
+}
+$('pages').addEventListener('click', e => {
+  if (!window.getSelection().isCollapsed) return;
+  const pageEl = e.target.closest('.page');
+  if (!pageEl || e.target.closest('.hl-note')) return;
+  const hit = markAt(pageEl, e.clientX, e.clientY);
+  if (!hit) return;
+  hideNoteTip();
+  hlTarget = hit;
+  document.querySelectorAll('#hlPop [data-recolor]').forEach(b => b.setAttribute('aria-pressed', b.dataset.recolor === hit.color));
+  placePop($('hlPop'), { left: e.clientX, right: e.clientX, width: 0, top: e.clientY - 8, bottom: e.clientY + 8 });
+});
+function hideHlPop() { $('hlPop').hidden = true; }
+
+// Passar o mouse sobre um destaque com anotação (ou sobre o lápis da margem) mostra a anotação
+let tipFrame = 0, tipMark = null;
+$('pages').addEventListener('mousemove', e => {
+  if (tipFrame) return;
+  tipFrame = requestAnimationFrame(() => { tipFrame = 0; updateNoteTip(e); });
+});
+$('pages').addEventListener('mouseleave', hideNoteTip);
+viewer.addEventListener('scroll', hideNoteTip, { passive: true });
+function updateNoteTip(e) {
+  if (e.buttons || !$('hlPop').hidden) { hideNoteTip(); return; }   // arrastando para selecionar ou com o menu do destaque aberto
+  const icon = e.target.closest('.hl-note');
+  const pageEl = e.target.closest('.page');
+  const mark = icon ? findMark(icon.dataset.openNote) : pageEl && markAt(pageEl, e.clientX, e.clientY);
+  if (!mark?.note?.trim()) { hideNoteTip(); return; }
+  if (tipMark === mark) return;
+  tipMark = mark;
+  $('noteTipText').textContent = mark.note.trim();
+  const pr = S.pages[mark.page - 1].el.getBoundingClientRect(), r = mark.rects[0];
+  const left = pr.left + r.x * pr.width, top = pr.top + r.y * pr.height;
+  placePop($('noteTip'), { left, right: left + r.w * pr.width, width: r.w * pr.width, top, bottom: top + r.h * pr.height });
+}
+function hideNoteTip() { tipMark = null; $('noteTip').hidden = true; }
+document.querySelectorAll('#hlPop [data-recolor]').forEach(b => b.onclick = () => { hideHlPop(); saveMark({ ...hlTarget, color: b.dataset.recolor }); });
+$('hlNote').onclick = () => { hideHlPop(); openNote(hlTarget.id); };
+$('hlDelete').onclick = () => { hideHlPop(); deleteMark(hlTarget); };
+
+function toggleBookmark() {
+  if (!S.book) return;
+  const existing = S.marks.find(m => m.type === 'bookmark' && m.page === S.current);
+  if (existing) deleteMark(existing);
+  else { saveMark({ id: uid(), book: S.book.id, type: 'bookmark', page: S.current, createdAt: Date.now() }); toast(`Página ${S.current} marcada.`); }
+}
+function updateBookmarkBtn() {
+  const on = !!S.book && S.marks.some(m => m.type === 'bookmark' && m.page === S.current);
+  $('bookmarkBtn').setAttribute('aria-pressed', on);
+  $('bookmarkBtn').title = on ? 'Desmarcar esta página (B)' : 'Marcar esta página (B)';
+}
+$('bookmarkBtn').onclick = toggleBookmark;
+
+// Leva até o destaque e pisca para localizar
+function gotoMark(mark) {
+  const p = S.pages[mark.page - 1];
+  if (!p) return;
+  const y = mark.rects ? mark.rects[0].y * p.el.offsetHeight : 0;
+  viewer.scrollTo({ top: p.el.offsetTop + y - viewer.clientHeight * 0.3, behavior: 'smooth' });
+  if (isMobile()) setPanel(false);
+  p.hl.querySelectorAll(`[data-id="${mark.id}"]`).forEach(el => { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); });
+}
+
+/* ---------- Aba Marcações ---------- */
+function showPane(name) {
+  document.querySelectorAll('.panel-tabs [data-pane]').forEach(b => b.setAttribute('aria-selected', b.dataset.pane === name));
+  $('paneDict').hidden = name !== 'dict';
+  $('paneMarks').hidden = name !== 'marks';
+  if (name === 'marks') $('marksList').querySelectorAll('.mk-note:not([hidden])').forEach(autosize);
+}
+
+const BOOKMARK_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h10v16l-5-3.6L7 20z"/></svg>';
+function drawMarks() {
+  const total = S.marks.length;
+  $('marksCount').textContent = total ? ' · ' + total : '';
+  $('exportMarks').hidden = !total;
+  $('backupBook').hidden = !S.book;
+  const box = $('marksList');
+  if (!S.book) { box.innerHTML = `<p class="hist-empty">Abra um livro para ver seus destaques, anotações e marcadores.</p>`; return; }
+  const q = $('marksFilter').value.trim().toLowerCase();
+  const list = sortedMarks().filter(m => !q || (m.text || '').toLowerCase().includes(q) || (m.note || '').toLowerCase().includes(q));
+  if (!list.length) {
+    box.innerHTML = total ? `<p class="hist-empty">Nada encontrado para “${esc(q)}”.</p>`
+      : `<p class="hist-empty">Selecione um trecho do livro e escolha uma cor para destacar, ou toque em <em>Anotar</em>. Para guardar uma página, use o marcador na barra (ou a tecla <kbd>B</kbd>).</p>`;
+    return;
+  }
+  let html = '', lastPage = 0;
+  for (const m of list) {
+    if (m.page !== lastPage) { html += `<h3 class="pos mk-page"><button data-page="${m.page}">Página ${m.page}</button></h3>`; lastPage = m.page; }
+    html += m.type === 'bookmark'
+      ? `<article class="mk mk-bm"><span>${BOOKMARK_ICON}Marcador</span><button class="text-btn muted" data-del-mark="${m.id}">Remover</button></article>`
+      : `<article class="mk" data-mark="${m.id}">
+          <button class="mk-text" data-goto="${m.id}" data-color="${m.color}" title="Ir para o trecho"><span><span class="mk-hl">${esc(m.text)}</span></span></button>
+          <textarea class="mk-note" data-note="${m.id}" rows="1" placeholder="Escreva uma anotação…" title="Clique para editar" ${m.note ? '' : 'hidden'}>${esc(m.note)}</textarea>
+          <div class="mk-actions">
+            ${m.note ? '' : `<button class="text-btn" data-add-note="${m.id}">Anotar</button>`}
+            <button class="text-btn muted" data-del-mark="${m.id}">Apagar</button>
+          </div>
+        </article>`;
+  }
+  box.innerHTML = html;
+  box.querySelectorAll('.mk-note:not([hidden])').forEach(autosize);
+}
+const sortedMarks = () => [...S.marks].sort((a, b) => a.page - b.page || (a.rects?.[0].y ?? -1) - (b.rects?.[0].y ?? -1));
+// A altura acompanha o texto. Navegadores com field-sizing fazem isso sozinhos; nos outros calcula,
+// mas só com o campo visível (escondido ele mede 0 e cortaria a anotação)
+const nativeAutosize = CSS.supports('field-sizing', 'content');
+function autosize(t) {
+  if (nativeAutosize || !t.offsetParent) return;
+  t.style.height = 'auto';
+  t.style.height = t.scrollHeight + 2 + 'px';
+}
+
+function openNote(id) {
+  setPanel(true); showPane('marks');
+  if ($('marksFilter').value) { $('marksFilter').value = ''; drawMarks(); }
+  const item = $('marksList').querySelector(`[data-mark="${id}"]`);
+  if (!item) return;
+  const t = item.querySelector('.mk-note');
+  t.hidden = false; autosize(t);
+  item.querySelector('[data-add-note]')?.remove();
+  item.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  t.focus({ preventScroll: true });
+}
+
+// Anotação salva enquanto digita (sem redesenhar a lista, para não perder o foco)
+let noteTimer;
+$('marksList').addEventListener('input', e => {
+  const t = e.target.closest('[data-note]');
+  if (!t) return;
+  autosize(t);
+  const mark = findMark(t.dataset.note);
+  if (!mark) return;
+  mark.note = t.value;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => saveMark(mark, { redrawList: false }), 400);
+});
+$('marksList').addEventListener('focusout', e => {
+  const t = e.target.closest('[data-note]');
+  if (!t) return;
+  clearTimeout(noteTimer);
+  const mark = findMark(t.dataset.note);
+  if (mark) saveMark(mark, { redrawList: !mark.note.trim() });   // nota vazia volta a mostrar "Anotar"
+});
+$('marksFilter').addEventListener('input', drawMarks);
+
+function exportMarks() {
+  const out = [`# ${S.book.title}`, '', `_Marcações exportadas do Marginália em ${new Date().toLocaleDateString('pt-BR')}_`, ''];
+  let lastPage = 0;
+  for (const m of sortedMarks()) {
+    if (m.page !== lastPage) { out.push(`## Página ${m.page}`, ''); lastPage = m.page; }
+    if (m.type === 'bookmark') { out.push('- Marcador', ''); continue; }
+    out.push('> ' + m.text, '');
+    if (m.note.trim()) out.push('**Anotação:** ' + m.note.trim(), '');
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out.join('\n')], { type: 'text/markdown;charset=utf-8' }));
+  a.download = S.book.title.replace(/[\\/:*?"<>|]+/g, '').slice(0, 80) + ' - marcações.md';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('exportMarks').onclick = exportMarks;
+
+/* ---------- Backup por livro: levar para outro aparelho ---------- */
+const safeFileName = s => s.replace(/[\/:*?"<>|]+/g, '').slice(0, 80);
+function downloadFile(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function backupBook() {
+  savePosition();
+  const data = {
+    format: 'marginalia-backup', version: 1, exportedAt: new Date().toISOString(),
+    book: S.book, marks: S.marks, history: history.filter(h => h.book === S.book.id),
+  };
+  downloadFile(safeFileName(S.book.title) + ' - marginalia.json', JSON.stringify(data), 'application/json');
+  toast('Backup baixado. No outro aparelho: “Importar backup” na tela inicial e depois abra o PDF.');
+}
+$('backupBook').onclick = backupBook;
+
+// Importa juntando com o que já existe (pode importar o mesmo arquivo de novo sem duplicar)
+async function importBackup(file) {
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); } catch { toast('Não consegui ler este arquivo.'); return; }
+  const b = data?.book;
+  if (data?.format !== 'marginalia-backup' || !b?.id || !b.title || !Array.isArray(data.marks)) { toast('Este arquivo não é um backup do Marginália.'); return; }
+  const marks = data.marks.filter(m => m && m.id && m.book === b.id && (m.type === 'bookmark' || (m.type === 'highlight' && Array.isArray(m.rects))) && Number.isInteger(m.page));
+  try {
+    const existing = await booksDb.get(b.id);
+    const book = existing && existing.updatedAt > (b.updatedAt || 0) ? { ...b, ...existing } : { ...existing, ...b };
+    await booksDb.put(book);
+    await marksDb.putMany(marks);
+  } catch (err) { console.error(err); toast('Não consegui importar neste navegador.'); return; }
+  const known = new Set(history.map(h => h.word));
+  history = [...history, ...(data.history || []).filter(h => h?.word && !known.has(h.word))].sort((x, y) => (y.t || 0) - (x.t || 0)).slice(0, 300);
+  store.set('marginalia.history', history);
+  if (S.book?.id === b.id) { S.marks = await marksDb.forBook(b.id).catch(() => S.marks); S.pages.forEach(p => drawPageMarks(p.num)); }
+  drawMarks(); drawHistory(); renderShelf();
+  toast(`“${b.title}”: ${marks.length} marcações importadas.` + (S.book?.id === b.id ? '' : ' Toque no livro e escolha o PDF.'));
+}
+['importFile', 'importFile2'].forEach(id => $(id).onchange = e => { importBackup(e.target.files[0]); e.target.value = ''; });
+
+/* ================= Dicionário ================= */
+// Variantes a tentar se a forma exata não existir (plural, passado, gerúndio…)
+function candidates(q) {
+  if (q.includes(' ')) {   // expressão: também tenta com a 1ª palavra na forma básica ("backing off" → "back off")
+    const [first, ...rest] = q.toLowerCase().split(' ');
+    return [...new Set([q.toLowerCase(), ...candidates(first).map(f => f.toLowerCase() + ' ' + rest.join(' ')), q])];
+  }
+  const w = q.toLowerCase().replace(/’/g, "'").replace(/'s$/, '');
+  const out = [w];
+  const add = s => s.length > 2 && !out.includes(s) && out.push(s);
+  if (w.endsWith('ies')) add(w.slice(0, -3) + 'y');
+  if (w.endsWith('es')) add(w.slice(0, -2));
+  if (w.endsWith('s')) add(w.slice(0, -1));
+  if (w.endsWith('ied')) add(w.slice(0, -3) + 'y');
+  if (w.endsWith('ed')) { add(w.slice(0, -2)); add(w.slice(0, -1)); const b = w.slice(0, -2); if (b[b.length-1] === b[b.length-2]) add(b.slice(0, -1)); }
+  if (w.endsWith('ing')) { add(w.slice(0, -3)); add(w.slice(0, -3) + 'e'); const b = w.slice(0, -3); if (b[b.length-1] === b[b.length-2]) add(b.slice(0, -1)); }
+  if (w.endsWith('ly')) add(w.slice(0, -2));
+  if (w.endsWith('er')) add(w.slice(0, -2));
+  if (q !== w) add(q);   // nomes próprios ("Charlie")
+  return out;
+}
+
+async function fetchEntry(word) {
+  if (cache.has(word)) return cache.get(word);
+  const r = await fetch(API + encodeURIComponent(word.replace(/ /g, '_')));
+  if (r.status === 404) { cache.set(word, null); return null; }
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const data = (await r.json()).en || null;   // a resposta traz vários idiomas; só interessa inglês
+  cache.set(word, data);
+  return data;
+}
+
+let lookupSeq = 0, lastLookup = null;
+async function lookup(query, ctx = null) {
+  const q = query.trim().replace(/\s+/g, ' ').replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, '');
+  if (!q) return;
+  lastLookup = { q, ctx };
+  if (!panelOpen()) setPanel(true);
+  showPane('dict');
+  const seq = ++lookupSeq;
+  $('entry').innerHTML = `<div class="skeleton w1"></div><div class="skeleton w2"></div><div class="skeleton w3"></div><div class="skeleton w2"></div>`;
+  try {
+    for (const w of candidates(q)) {
+      const data = await fetchEntry(w);
+      if (seq !== lookupSeq) return;
+      if (data && renderEntry(data, q, w)) { ptState.context = ctx?.context || ''; remember(w, ctx); return; }
+    }
+    // Várias palavras que não são uma expressão do dicionário: traduz o trecho
+    if (q.includes(' ')) { translatePassage(q, 'Não é uma expressão do dicionário. Segue a tradução automática.'); return; }
+    $('entry').innerHTML = `<h2 class="entry-word">${esc(q)}</h2><p class="msg">Não encontrei essa palavra no Wiktionary.</p>
+      <p class="msg" style="font-size:15px">Confira a grafia ou tente a forma básica (ex.: <em>run</em> em vez de <em>ran</em>).</p>`;
+  } catch {
+    if (seq !== lookupSeq) return;
+    $('entry').innerHTML = `<h2 class="entry-word">${esc(q)}</h2><p class="msg">Não consegui falar com o Wiktionary. Verifique a internet.</p>
+      <button class="text-btn" data-retry>Tentar de novo</button>`;
+  }
+}
+
+function renderEntry(data, query, used) {
+  const senses = data.map(m => ({
+    pos: m.partOfSpeech,
+    defs: m.definitions.map(d => ({ text: richText(d.definition), ex: (d.examples || [])[0] })).filter(d => d.text.trim()),
+  })).filter(s => s.defs.length);
+  if (!senses.length) return false;
+  const canSay = 'speechSynthesis' in window;
+  const from = used.toLowerCase() !== query.toLowerCase() ? `<p class="entry-from">de <em>${esc(query)}</em></p>` : '';
+  ptState = { word: used, query, loaded: false };
+  $('entry').innerHTML = `
+    <div class="entry-head">
+      <h2 class="entry-word">${esc(used)}</h2>
+      ${canSay ? `<button class="ghost say" data-say="${esc(used)}" title="Ouvir pronúncia" aria-label="Ouvir pronúncia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button>` : ''}
+    </div>
+    ${from}
+    <div class="tabs" role="tablist" aria-label="Idioma do verbete">
+      <button role="tab" data-tab="en" aria-selected="true">Inglês</button>
+      <button role="tab" data-tab="pt" aria-selected="false">Português</button>
+    </div>
+    <div id="tab-en" role="tabpanel">
+    ${senses.map(s => `<section class="sense"><h3 class="pos">${esc(s.pos)}</h3><ol class="defs">
+      ${s.defs.slice(0, 5).map(d => `<li><span>${d.text}${d.ex ? `<span class="ex">${richText(d.ex)}</span>` : ''}</span></li>`).join('')}
+    </ol></section>`).join('')}
+    </div>
+    <div id="tab-pt" role="tabpanel" hidden></div>
+    <div class="entry-links">
+      <a target="_blank" rel="noopener" href="https://translate.google.com/?sl=en&tl=pt&text=${encodeURIComponent(used)}">Traduzir para o português ↗</a>
+      <a target="_blank" rel="noopener" href="https://en.wiktionary.org/wiki/${encodeURIComponent(used.replace(/ /g, '_'))}#English">Wiktionary ↗</a>
+    </div>`;
+  $('panel').querySelector('.panel-scroll').scrollTop = 0;
+  return true;
+}
+
+// O Wiktionary devolve HTML. Mantém só o texto; links internos viram palavras clicáveis
+// (ex.: "simple past of wander" → clicar em "wander" abre o verbete).
+function richText(html) {
+  const walk = node => [...node.childNodes].map(n => {
+    if (n.nodeType === Node.TEXT_NODE) return esc(n.textContent);
+    if (n.nodeType !== Node.ELEMENT_NODE) return '';
+    const href = n.tagName === 'A' ? n.getAttribute('href') || '' : '';
+    if (href.startsWith('/wiki/') && !href.includes(':')) {
+      const target = decodeURIComponent(href.slice(6).split('#')[0]).replace(/_/g, ' ');
+      return `<a class="word" data-word="${esc(target)}">${walk(n)}</a>`;
+    }
+    return walk(n);
+  }).join('');
+  return walk(new DOMParser().parseFromString(html, 'text/html').body);
+}
+
+function speak(word) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US'; u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+/* ================= Aba Português (só carrega quando aberta) ================= */
+const API_HTML = 'https://en.wiktionary.org/api/rest_v1/page/html/';
+const MT = 'https://api.mymemory.translated.net/get';
+let ptState = null;   // verbete aberto no momento: { word, query, context, loaded }
+
+function showTab(tab) {
+  document.querySelectorAll('.tabs [role="tab"]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  $('tab-en').hidden = tab !== 'en';
+  $('tab-pt').hidden = tab !== 'pt';
+  if (tab === 'pt' && !ptState.loaded) loadPortuguese(ptState);
+}
+
+// Traduções do Wiktionary para o português, agrupadas pelo sentido em inglês
+async function fetchTranslations(title) {
+  const key = 'pt:' + title;
+  if (cache.has(key)) return cache.get(key);
+  const r = await fetch(API_HTML + encodeURIComponent(title.replace(/ /g, '_')));
+  if (r.status === 404) { cache.set(key, []); return []; }
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+  const seen = new Set();
+  let groups = [...doc.querySelectorAll('[data-gloss]')].map(el => ({
+    gloss: el.dataset.gloss,
+    terms: [...new Set([...el.querySelectorAll('[lang="pt"]')].map(s => s.textContent.trim()).filter(Boolean))],
+  })).filter(g => g.terms.length && !seen.has(g.gloss) && seen.add(g.gloss));
+  // Palavras muito comuns guardam as traduções numa subpágina ("run/translations")
+  const sub = `./${title.replace(/ /g, '_')}/translations`;
+  if (!groups.length && !title.endsWith('/translations') && [...doc.querySelectorAll('a')].some(a => (a.getAttribute('href') || '').startsWith(sub)))
+    groups = await fetchTranslations(title + '/translations');
+  cache.set(key, groups);
+  return groups;
+}
+
+// Tradução automática (MyMemory, gratuita) para quando o Wiktionary não tem tradução
+async function machineTranslate(text) {
+  const key = 'mt:' + text;
+  if (cache.has(key)) return cache.get(key);
+  const r = await fetch(`${MT}?q=${encodeURIComponent(text)}&langpair=en|pt-BR`);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (j.quotaFinished || j.responseStatus === 429) throw new Error('O limite diário da tradução automática acabou. Tente amanhã.');
+  if (j.responseStatus !== 200) throw new Error(j.responseDetails || 'Falha na tradução automática.');
+  const raw = j.responseData?.translatedText || '';
+  const t = new DOMParser().parseFromString(raw, 'text/html').body.textContent.trim();   // vem com entidades HTML
+  const out = t && t.toLowerCase() !== text.toLowerCase() ? t : null;
+  cache.set(key, out);
+  return out;
+}
+
+async function loadPortuguese(st) {
+  const box = $('tab-pt');
+  box.innerHTML = `<div class="skeleton w2"></div><div class="skeleton w3"></div><div class="skeleton w2"></div>`;
+  try {
+    let groups = [], source = st.word;
+    for (const w of new Set([st.word, ...candidates(st.query)])) {
+      groups = await fetchTranslations(w);
+      if (ptState !== st) return;
+      if (groups.length) { source = w; break; }
+    }
+    let html = '';
+    if (groups.length) {
+      if (source !== st.word) html += `<p class="entry-from">traduções de <em>${esc(source)}</em></p>`;
+      html += groups.slice(0, 8).map(g => `<section class="pt-sense"><p class="gloss">${esc(g.gloss)}</p><p class="pt-terms">${g.terms.map(esc).join(', ')}</p></section>`).join('');
+    } else {
+      const mt = await machineTranslate(st.word);
+      if (ptState !== st) return;
+      html = mt
+        ? `<p class="pt-terms big">${esc(mt)}</p><p class="note-mt">Tradução automática. O Wiktionary não tem tradução para esta palavra.</p>`
+        : `<p class="msg">Não encontrei tradução para o português.</p>`;
+    }
+    if (st.context) html += `<div class="sentence"><h3 class="pos">Frase do livro</h3><p class="sent-en">${esc(st.context)}</p>
+      <div id="sentPt"><button class="text-btn" data-translate-sentence>Traduzir a frase</button></div></div>`;
+    box.innerHTML = html;
+    st.loaded = true;
+  } catch (err) {
+    if (ptState !== st) return;
+    box.innerHTML = `<p class="msg">${esc(err.message.startsWith('O limite') ? err.message : 'Não consegui buscar a tradução. Verifique a internet.')}</p>
+      <button class="text-btn" data-retry-pt>Tentar de novo</button>`;
+  }
+}
+
+async function translateSentence() {
+  const st = ptState, box = $('sentPt');
+  box.innerHTML = `<p class="note-mt">Traduzindo…</p>`;
+  try {
+    const t = await machineTranslate(st.context);
+    if (ptState !== st) return;
+    box.innerHTML = `<p class="sent-pt">${esc(t || st.context)}</p><p class="note-mt">Tradução automática.</p>`;
+  } catch (err) {
+    if (ptState !== st) return;
+    box.innerHTML = `<p class="note-mt">${esc(err.message.startsWith('O limite') ? err.message : 'Não consegui traduzir. Verifique a internet.')}</p>
+      <button class="text-btn" data-translate-sentence>Tentar de novo</button>`;
+  }
+}
+
+/* ================= Tradução de trecho ================= */
+const PASSAGE_MAX = 2000;   // a tradução gratuita tem cota diária por caracteres
+
+// O MyMemory aceita até 500 bytes por pedido: quebra o trecho por frases
+function chunks(text, max = 450) {
+  const out = []; let cur = '';
+  for (const part of text.match(/[^.!?]+[.!?]*\s*/g) || [text]) {
+    if (cur && (cur + part).length > max) { out.push(cur); cur = ''; }
+    cur += part;
+  }
+  if (cur) out.push(cur);
+  return out.flatMap(c => c.length > max ? c.match(new RegExp(`.{1,${max}}(\\s|$)`, 'g')) : [c]).map(c => c.trim()).filter(Boolean);
+}
+
+async function translatePassage(text, note = '') {
+  let q = text.trim().replace(/\s+/g, ' ');
+  if (!q) return;
+  const cut = q.length > PASSAGE_MAX;
+  if (cut) q = q.slice(0, PASSAGE_MAX).replace(/\s\S*$/, '') + '…';
+  lastLookup = { q, passage: true };
+  ptState = null;
+  if (!panelOpen()) setPanel(true);
+  showPane('dict');
+  const seq = ++lookupSeq;
+  $('entry').innerHTML = `<h3 class="pos">Trecho</h3><p class="sent-en">${esc(q)}</p>
+    <div class="skeleton w2"></div><div class="skeleton w3"></div>`;
+  try {
+    const parts = [];
+    for (const c of chunks(q)) {
+      parts.push(await machineTranslate(c) || c);
+      if (seq !== lookupSeq) return;
+    }
+    $('entry').innerHTML = `<h3 class="pos">Trecho</h3><p class="sent-en">${esc(q)}</p>
+      <p class="passage-pt">${esc(parts.join(' '))}</p>
+      <p class="note-mt">${esc(note || 'Tradução automática.')}${cut ? ` Trecho cortado em ${PASSAGE_MAX} caracteres.` : ''}</p>
+      <div class="entry-links"><a target="_blank" rel="noopener" href="https://translate.google.com/?sl=en&tl=pt&op=translate&text=${encodeURIComponent(q)}">Abrir no Google Tradutor ↗</a></div>`;
+    $('panel').querySelector('.panel-scroll').scrollTop = 0;
+  } catch (err) {
+    if (seq !== lookupSeq) return;
+    $('entry').innerHTML = `<h3 class="pos">Trecho</h3><p class="sent-en">${esc(q)}</p>
+      <p class="msg">${esc(err.message.startsWith('O limite') ? err.message : 'Não consegui traduzir. Verifique a internet.')}</p>
+      <button class="text-btn" data-retry>Tentar de novo</button>`;
+  }
+}
+
+$('searchForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = $('search').value.trim();
+  // Frase (5+ palavras ou pontuação) vai direto para tradução; palavra ou expressão vai ao dicionário
+  if (q.split(/\s+/).length >= 5 || /[.!?;:,]/.test(q)) translatePassage(q); else lookup(q);
+  $('search').select();
+});
+
+/* ================= Histórico ================= */
+function remember(word, ctx) {
+  const prev = history.find(h => h.word === word);
+  const item = ctx
+    ? { word, form: ctx.form, page: ctx.page, context: ctx.context, book: S.fileKey, t: Date.now() }
+    : { ...(prev || { word }), t: Date.now() };   // pesquisa manual mantém a frase de onde veio
+  history = [item, ...history.filter(h => h.word !== word)].slice(0, 300);
+  store.set('marginalia.history', history);
+  drawHistory();
+}
+
+function snippet(text, form) {
+  if (!text) return '';
+  let i = form ? text.toLowerCase().indexOf(form.toLowerCase()) : -1;
+  let s = text, off = 0;
+  if (text.length > 90) {
+    off = Math.max(0, (i < 0 ? 0 : i) - 35);
+    s = (off ? '…' : '') + text.slice(off, off + 90) + (off + 90 < text.length ? '…' : '');
+    if (off) off -= 1;   // compensa o "…" inicial
+  }
+  if (i < 0) return esc(s);
+  i -= off;
+  return esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + form.length)) + '</mark>' + esc(s.slice(i + form.length));
+}
+
+function drawHistory() {
+  $('histCount').textContent = history.length ? '· ' + history.length : '';
+  $('clearHist').hidden = !history.length;
+  $('histList').innerHTML = history.length
+    ? history.map(h => `<li>
+        <button class="h-word" data-word="${esc(h.word)}">${esc(h.word)}</button>
+        ${h.page && h.book === S.fileKey ? `<button class="h-page" data-page="${h.page}" title="Ir para a página">p. ${h.page}</button>` : '<span></span>'}
+        ${h.context ? `<span class="h-ctx">${snippet(h.context, h.form)}</span>` : ''}
+      </li>`).join('')
+    : `<li style="border:0"><p class="hist-empty">As palavras que você consultar aparecem aqui, com a frase e a página onde estavam.</p></li>`;
+}
+$('clearHist').onclick = () => {
+  if (!confirm('Apagar todas as palavras consultadas?')) return;
+  history = []; store.set('marginalia.history', history); drawHistory();
+};
+drawHistory();
+
+/* ================= Cliques e atalhos ================= */
+document.addEventListener('click', e => {
+  const on = sel => e.target.closest(sel);
+  let el;
+  if ((el = on('[data-pane]'))) { showPane(el.dataset.pane); return; }
+  if ((el = on('[data-open-book]'))) { openFromShelf(el.dataset.openBook); return; }
+  if ((el = on('[data-remove-book]'))) { removeBook(el.dataset.removeBook); return; }
+  if ((el = on('[data-goto]'))) { gotoMark(findMark(el.dataset.goto)); return; }
+  if ((el = on('[data-add-note]'))) { openNote(el.dataset.addNote); return; }
+  if ((el = on('[data-open-note]'))) { openNote(el.dataset.openNote); return; }
+  if ((el = on('[data-del-mark]'))) { const m = findMark(el.dataset.delMark); if (m) deleteMark(m); return; }
+  const w = e.target.closest('[data-word]');
+  if (w) { lookup(w.dataset.word); return; }
+  const pg = e.target.closest('[data-page]');
+  if (pg) { scrollToPage(+pg.dataset.page, true); if (isMobile()) setPanel(false); return; }
+  const say = e.target.closest('[data-say]');
+  if (say) { speak(say.dataset.say); return; }
+  const tab = e.target.closest('[data-tab]');
+  if (tab) { showTab(tab.dataset.tab); return; }
+  if (e.target.closest('[data-retry-pt]')) { loadPortuguese(ptState); return; }
+  if (e.target.closest('[data-translate-sentence]')) { translateSentence(); return; }
+  if (e.target.closest('[data-retry]') && lastLookup) lastLookup.passage ? translatePassage(lastLookup.q) : lookup(lastLookup.q, lastLookup.ctx);
+});
+
+document.addEventListener('keydown', e => {
+  const typing = !!e.target.matches?.('input, textarea');
+  if (e.key === 'Escape' && typing) { e.target.blur(); return; }
+  if (e.key === 'Escape') { hideSelPop(); hideHlPop(); return; }
+  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === '/') { e.preventDefault(); setPanel(true); showPane('dict'); $('search').focus(); }
+  else if (e.key === 'd' || e.key === 'D') setPanel(!panelOpen());
+  else if (!S.pdf) return;
+  else if (e.key === 'b' || e.key === 'B') toggleBookmark();
+  else if (e.key === 'ArrowRight') { e.preventDefault(); scrollToPage(S.current + 1, true); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); scrollToPage(S.current - 1, true); }
+  else if (e.key === '+' || e.key === '=') setZoom(S.scale * 1.15);
+  else if (e.key === '-') setZoom(S.scale / 1.15);
+});
+
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Os dados ficam salvos por endereço: aberto via file:// a estante é outra (e parece vazia)
+$('fileWarning').hidden = location.protocol !== 'file:';
+renderShelf();
+drawMarks();
+</script>
+</body>
+</html>
