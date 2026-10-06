@@ -174,7 +174,10 @@
   [data-color="blue"]   { --c: oklch(0.8 0.1 240); }
   [data-color="pink"]   { --c: oklch(0.8 0.13 355); }
   .hl-layer, .note-layer { position: absolute; inset: 0; pointer-events: none; }
-  .hl-layer { z-index: 1; }
+  .hl-layer, .echo-layer { z-index: 1; }
+  .echo-layer { position: absolute; inset: 0; pointer-events: none; }
+  /* expressão já destacada que reaparece: só um pontilhado, sem entregar a resposta */
+  .echo { position: absolute; border-bottom: 2px dotted color-mix(in oklch, var(--c) 65%, var(--ink)); }
   .note-layer { z-index: 3; }
   .hl { position: absolute; background: var(--c); opacity: var(--hl-opacity); mix-blend-mode: var(--hl-blend); border-radius: 2px; }
   .hl.flash { animation: flash .6s var(--ease) 3; }
@@ -403,6 +406,17 @@
     box-shadow: 0 10px 28px -10px oklch(0.2 0.03 60 / 0.4); animation: rise .18s var(--ease) both;
   }
   .note-tip[hidden] { display: none; }
+  .note-tip-word { display: block; margin: 2px 0 4px; font: 600 17px/1.3 "Newsreader", serif; color: var(--ink); }
+  .note-tip-word[hidden] { display: none; }
+  .echo-pop { flex-direction: column; align-items: stretch; max-width: min(340px, calc(100vw - 16px)); }
+  .echo-pop .echo-info { padding: 8px 12px; color: var(--surface); border-bottom: 1px solid color-mix(in oklch, var(--surface) 20%, transparent); }
+  .echo-pop .echo-info small { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+  .echo-pop .echo-info strong { display: block; font: 600 17px/1.3 "Newsreader", serif; margin-top: 2px; }
+  .echo-pop .echo-info span { display: block; font: italic 15px/1.4 "Newsreader", serif; margin-top: 2px; opacity: .9; }
+  .echo-pop .echo-info span[hidden] { display: none; }
+  .echo-actions { display: flex; gap: 2px; padding-top: 4px; }
+  .mk [data-learn] { margin-top: 6px; }
+  .mk-learned-tag { display: inline-block; margin-left: 8px; font: 600 10.5px/1 "Hanken Grotesk", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); vertical-align: 2px; }
   .note-tip-label { display: block; margin-bottom: 4px; font: 600 10.5px/1 "Hanken Grotesk", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
   .note-tip p { margin: 0; font: italic 16px/1.45 "Newsreader", serif; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
   .toast-btn { margin-left: 12px; border: 0; background: none; padding: 0; color: inherit; font-weight: 700; text-decoration: underline; }
@@ -568,8 +582,17 @@
   <button id="selNote">Anotar</button>
 </div>
 <div class="note-tip" id="noteTip" hidden role="tooltip">
-  <span class="note-tip-label">Sua anotação</span>
+  <span class="note-tip-label" id="noteTipLabel">Sua anotação</span>
+  <strong class="note-tip-word" id="noteTipWord" hidden></strong>
   <p id="noteTipText"></p>
+</div>
+<div class="sel-pop echo-pop" id="echoPop" hidden>
+  <div class="echo-info"><small id="echoWhere"></small><strong id="echoWord"></strong><span id="echoNote"></span></div>
+  <div class="echo-actions">
+    <button id="echoMeaning">Significado</button>
+    <button id="echoGo">Ir ao destaque</button>
+    <button id="echoLearned">Já aprendi</button>
+  </div>
 </div>
 <div class="sel-pop" id="hlPop" hidden>
   <button class="dot" data-recolor="yellow" data-color="yellow" aria-label="Amarelo"></button>
@@ -866,10 +889,10 @@ function buildPages() {
   S.pages = Array.from({ length: S.pdf.numPages }, (_, i) => {
     const el = document.createElement('div');
     el.className = 'page'; el.dataset.num = i + 1;
-    el.innerHTML = `<canvas></canvas><div class="hl-layer"></div><div class="textLayer"></div><div class="note-layer"></div><span class="folio">${i + 1}</span>`;
+    el.innerHTML = `<canvas></canvas><div class="hl-layer"></div><div class="echo-layer"></div><div class="textLayer"></div><div class="note-layer"></div><span class="folio">${i + 1}</span>`;
     pagesEl.appendChild(el);
-    const [canvas, hl, tl, notes] = el.children;
-    return { num: i + 1, el, canvas, hl, tl, notes, size: null, token: 0, loading: false, rendered: false, task: null, textTask: null };
+    const [canvas, hl, echo, tl, notes] = el.children;
+    return { num: i + 1, el, canvas, hl, echo, tl, notes, echoes: [], textIndex: null, size: null, token: 0, loading: false, rendered: false, task: null, textTask: null };
   });
   // Destaques ficam em % da página: não dependem do zoom nem do desenho do PDF
   S.pages.forEach(p => drawPageMarks(p.num));
@@ -927,6 +950,7 @@ async function renderPage(p) {
     p.el.classList.toggle('no-text', !text.items.some(i => i.str && i.str.trim()));
     p.el.classList.add('ready');
     p.rendered = true;
+    drawEchoes(p);
   } catch (err) {
     if (alive() && err?.name !== 'RenderingCancelledException') console.error('Página', p.num, err);
   } finally {
@@ -940,6 +964,7 @@ function unrender(p) {
   p.task = p.textTask = null; p.loading = false; p.rendered = false;
   p.canvas.width = p.canvas.height = 0;
   p.tl.innerHTML = '';
+  p.echo.innerHTML = ''; p.echoes = []; p.textIndex = null;
   p.el.classList.remove('ready');
 }
 
@@ -1040,7 +1065,7 @@ $('pages').addEventListener('dblclick', e => {
 
 // Seleção de várias palavras → menu flutuante com "Significado" (expressões curtas) e "Traduzir"
 let selPointerDown = false, selTimer, selData = null;
-document.addEventListener('pointerdown', e => { if (e.target.closest?.('.sel-pop')) return; selPointerDown = true; hideSelPop(); hideHlPop(); hideNoteTip(); });
+document.addEventListener('pointerdown', e => { if (e.target.closest?.('.sel-pop')) return; selPointerDown = true; hideSelPop(); hideHlPop(); hideEchoPop(); hideNoteTip(); });
 document.addEventListener('pointerup', e => {
   if (e.target.closest?.('.sel-pop')) return;   // clique no próprio menu não reabre o menu
   selPointerDown = false; clearTimeout(selTimer); selTimer = setTimeout(checkSelection, 10);
@@ -1072,12 +1097,13 @@ function checkSelection() {
   placePop($('selPop'), selData.range.getBoundingClientRect());
 }
 const isTouch = () => matchMedia('(pointer: coarse)').matches;
-function placePop(pop, r) {
+function placePop(pop, r, prefer = 'auto') {
   pop.hidden = false;
   const w = pop.offsetWidth, h = pop.offsetHeight;
   pop.style.left = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8) + 'px';
   // no celular o menu do sistema (copiar, compartilhar) abre em cima da seleção: o nosso vai embaixo
-  const below = isTouch() || r.top - h - 10 < 64;
+  const roomAbove = r.top - h - 10 >= 64;
+  const below = prefer === 'below' || !roomAbove || (prefer === 'auto' && isTouch());
   pop.style.top = clamp(below ? r.bottom + 14 : r.top - h - 10, 8, innerHeight - h - 8) + 'px';
 }
 function hideSelPop() { $('selPop').hidden = true; }
@@ -1116,13 +1142,14 @@ function saveMark(mark, { redrawList = true } = {}) {
   const i = S.marks.findIndex(m => m.id === mark.id);
   if (i < 0) S.marks.push(mark); else S.marks[i] = mark;
   drawPageMarks(mark.page);
+  refreshEchoes();
   if (redrawList) drawMarks();
   updateBookmarkBtn();
   persist(marksDb.put(mark), 'Não consegui salvar a marcação neste navegador.');
 }
 function deleteMark(mark, undo = true) {
   S.marks = S.marks.filter(m => m.id !== mark.id);
-  drawPageMarks(mark.page); drawMarks(); updateBookmarkBtn();
+  drawPageMarks(mark.page); refreshEchoes(); drawMarks(); updateBookmarkBtn();
   persist(marksDb.remove(mark.id));
   if (undo) toast(mark.type === 'bookmark' ? 'Marcador removido.' : 'Destaque apagado.', { label: 'Desfazer', run: () => saveMark(mark) });
 }
@@ -1154,7 +1181,11 @@ $('pages').addEventListener('click', e => {
   const pageEl = e.target.closest('.page');
   if (!pageEl || e.target.closest('.hl-note')) return;
   const hit = markAt(pageEl, e.clientX, e.clientY);
-  if (!hit) return;
+  if (!hit) {
+    const echo = echoAt(pageEl, e.clientX, e.clientY);
+    if (echo) { hideNoteTip(); showEchoPop(echo.mark, e); }
+    return;
+  }
   hideNoteTip();
   hlTarget = hit;
   document.querySelectorAll('#hlPop [data-recolor]').forEach(b => b.setAttribute('aria-pressed', b.dataset.recolor === hit.color));
@@ -1169,21 +1200,126 @@ $('pages').addEventListener('mousemove', e => {
   tipFrame = requestAnimationFrame(() => { tipFrame = 0; updateNoteTip(e); });
 });
 $('pages').addEventListener('mouseleave', hideNoteTip);
-viewer.addEventListener('scroll', hideNoteTip, { passive: true });
+viewer.addEventListener('scroll', () => { hideNoteTip(); hideEchoPop(); }, { passive: true });
 function updateNoteTip(e) {
-  if (e.buttons || !$('hlPop').hidden) { hideNoteTip(); return; }   // arrastando para selecionar ou com o menu do destaque aberto
+  if (e.buttons || !$('hlPop').hidden || !$('echoPop').hidden) { hideNoteTip(); return; }   // arrastando ou com um menu aberto
   const icon = e.target.closest('.hl-note');
   const pageEl = e.target.closest('.page');
-  const mark = icon ? findMark(icon.dataset.openNote) : pageEl && markAt(pageEl, e.clientX, e.clientY);
-  if (!mark?.note?.trim()) { hideNoteTip(); return; }
-  if (tipMark === mark) return;
-  tipMark = mark;
-  $('noteTipText').textContent = mark.note.trim();
-  const pr = S.pages[mark.page - 1].el.getBoundingClientRect(), r = mark.rects[0];
+  let mark = icon ? findMark(icon.dataset.openNote) : pageEl && markAt(pageEl, e.clientX, e.clientY);
+  let anchor = mark && { pageEl: S.pages[mark.page - 1].el, rect: mark.rects[0] };
+  let isEcho = false;
+  if (!mark && pageEl) {
+    const echo = echoAt(pageEl, e.clientX, e.clientY);
+    if (echo) { mark = echo.mark; anchor = { pageEl, rect: echo.rects[0] }; isEcho = true; }
+  }
+  if (!mark || (!isEcho && !mark.note?.trim())) { hideNoteTip(); return; }
+  const key = mark.id + (isEcho ? ':eco:' + pageEl.dataset.num + ':' + anchor.rect.y : '');
+  if (tipMark === key) return;
+  tipMark = key;
+  $('noteTipLabel').textContent = isEcho ? `Você destacou na p. ${mark.page}` : 'Sua anotação';
+  $('noteTipWord').hidden = !isEcho;
+  $('noteTipWord').textContent = mark.text;
+  $('noteTipText').textContent = mark.note?.trim() || 'Sem anotação. Clique para ver o significado.';
+  const pr = anchor.pageEl.getBoundingClientRect(), r = anchor.rect;
   const left = pr.left + r.x * pr.width, top = pr.top + r.y * pr.height;
-  placePop($('noteTip'), { left, right: left + r.w * pr.width, width: r.w * pr.width, top, bottom: top + r.h * pr.height });
+  placePop($('noteTip'), { left, right: left + r.w * pr.width, width: r.w * pr.width, top, bottom: top + r.h * pr.height }, 'above');
 }
 function hideNoteTip() { tipMark = null; $('noteTip').hidden = true; }
+
+/* ---------- Ecos: expressão destacada reaparece sublinhada mais adiante no livro ----------
+   Vale para destaques curtos (até 5 palavras) ainda não marcados como "Já aprendi". */
+const ECHO_MAX_WORDS = 5;
+const normText = t => t.toLowerCase().replace(/’/g, "'").replace(/\s+/g, ' ').replace(/^[^a-z]+|[^a-z]+$/g, '');
+const isTrackable = m => { const n = normText(m.text).split(' ').filter(Boolean).length; return n >= 1 && n <= ECHO_MAX_WORDS; };
+const trackedMarks = () => S.marks.filter(m => m.type === 'highlight' && !m.learned && isTrackable(m));
+
+// "figure out" também acha "figured out" / "figuring out"; palavra sozinha só aceita plural (para "even" não achar "evening")
+function echoRegex(text) {
+  const words = normText(text).split(' ');
+  const rx = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const forms = new Set();
+  for (const base of candidates(words[0]).map(b => b.toLowerCase())) {
+    forms.add(base); forms.add(base + 's'); forms.add(base + 'es');
+    if (words.length < 2) continue;
+    ['ed', 'd', 'ing'].forEach(suf => forms.add(base + suf));
+    if (base.endsWith('e')) forms.add(base.slice(0, -1) + 'ing');
+    if (base.endsWith('y')) { forms.add(base.slice(0, -1) + 'ies'); forms.add(base.slice(0, -1) + 'ied'); }
+    if (/[^aeiou][aeiou][bdgmnprt]$/.test(base)) { forms.add(base + base.slice(-1) + 'ed'); forms.add(base + base.slice(-1) + 'ing'); }
+  }
+  const first = [...forms].sort((a, b) => b.length - a.length).map(rx).join('|');
+  const rest = words.slice(1).map(rx).join(' ');
+  return new RegExp(`(?<![a-z'])(?:${first})${rest ? ' ' + rest : ''}(?![a-z])`, 'g');
+}
+
+// Texto da página em minúsculas com espaços normalizados, lembrando de onde veio cada letra
+function pageText(p) {
+  if (p.textIndex) return p.textIndex;
+  let text = '';
+  const map = [];
+  const push = (ch, node, off) => { if (ch === ' ' && (!text || text.endsWith(' '))) return; text += ch; map.push([node, off]); };
+  let lastTop = null;
+  const walker = document.createTreeWalker(p.tl, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeType === Node.ELEMENT_NODE) { if (n.tagName === 'BR') push(' ', n, 0); continue; }
+    const top = n.parentElement.style.top;
+    if (lastTop !== null && top !== lastTop) push(' ', n, 0);   // linha nova sem <br>: não grudar palavras
+    lastTop = top;
+    const s = n.textContent;
+    for (let i = 0; i < s.length; i++) push(/\s/.test(s[i]) ? ' ' : s[i].toLowerCase().replace('’', "'"), n, i);
+  }
+  return (p.textIndex = { text, map });
+}
+
+const rectsOverlap = (a, b) => a.some(r => b.some(s => r.x < s.x + s.w && s.x < r.x + r.w && r.y < s.y + s.h && s.y < r.y + r.h));
+
+function drawEchoes(p) {
+  p.echoes = [];
+  if (!p.rendered) { p.echo.innerHTML = ''; return; }
+  const { text, map } = pageText(p);
+  const ownHighlights = S.marks.filter(m => m.type === 'highlight' && m.page === p.num);
+  for (const m of trackedMarks()) {
+    if (m.page > p.num) continue;   // só daqui para frente no livro
+    for (const hit of text.matchAll(echoRegex(m.text))) {
+      const [sn, so] = map[hit.index], [en, eo] = map[hit.index + hit[0].length - 1];
+      const range = document.createRange();
+      range.setStart(sn, so); range.setEnd(en, eo + 1);
+      const rects = selectionRects(range, p.el);
+      if (!rects.length) continue;
+      if (m.page === p.num && rects[0].y <= m.rects[0].y + 0.002) continue;   // o próprio original ou acima dele
+      if (ownHighlights.some(o => rectsOverlap(o.rects, rects))) continue;     // ali já existe um destaque
+      p.echoes.push({ mark: m, rects });
+    }
+  }
+  p.echo.innerHTML = p.echoes.map(e => e.rects.map(r =>
+    `<div class="echo" data-color="${e.mark.color}" style="left:${r.x * 100}%;top:${r.y * 100}%;width:${r.w * 100}%;height:${r.h * 100}%"></div>`).join('')).join('');
+}
+const refreshEchoes = () => S.pages.forEach(p => p.rendered && drawEchoes(p));
+
+function echoAt(pageEl, clientX, clientY) {
+  const p = S.pages[pageEl.dataset.num - 1];
+  if (!p?.echoes.length) return null;
+  const pr = pageEl.getBoundingClientRect();
+  const x = (clientX - pr.left) / pr.width, y = (clientY - pr.top) / pr.height;
+  return p.echoes.find(e => e.rects.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) || null;
+}
+
+let echoTarget = null;
+function showEchoPop(mark, e) {
+  echoTarget = mark;
+  $('echoWhere').textContent = `Você destacou na p. ${mark.page}`;
+  $('echoWord').textContent = mark.text;
+  $('echoNote').textContent = mark.note?.trim() || '';
+  $('echoNote').hidden = !mark.note?.trim();
+  placePop($('echoPop'), { left: e.clientX, right: e.clientX, width: 0, top: e.clientY - 10, bottom: e.clientY + 10 }, 'below');
+}
+function hideEchoPop() { $('echoPop').hidden = true; }
+function setLearned(mark, learned) {
+  saveMark({ ...mark, learned });
+  if (learned) toast(`“${mark.text}” marcada como aprendida: não vai mais aparecer sublinhada.`, { label: 'Desfazer', run: () => saveMark({ ...mark, learned: false }) });
+}
+$('echoMeaning').onclick = () => { hideEchoPop(); lookup(echoTarget.text); };
+$('echoGo').onclick = () => { hideEchoPop(); gotoMark(echoTarget); };
+$('echoLearned').onclick = () => { hideEchoPop(); setLearned(echoTarget, true); };
 document.querySelectorAll('#hlPop [data-recolor]').forEach(b => b.onclick = () => { hideHlPop(); saveMark({ ...hlTarget, color: b.dataset.recolor }); });
 $('hlNote').onclick = () => { hideHlPop(); openNote(hlTarget.id); };
 $('hlDelete').onclick = () => { hideHlPop(); deleteMark(hlTarget); };
@@ -1240,10 +1376,11 @@ function drawMarks() {
     html += m.type === 'bookmark'
       ? `<article class="mk mk-bm"><span>${BOOKMARK_ICON}Marcador</span><button class="text-btn muted" data-del-mark="${m.id}">Remover</button></article>`
       : `<article class="mk" data-mark="${m.id}">
-          <button class="mk-text" data-goto="${m.id}" data-color="${m.color}" title="Ir para o trecho"><span><span class="mk-hl">${esc(m.text)}</span></span></button>
+          <button class="mk-text" data-goto="${m.id}" data-color="${m.color}" title="Ir para o trecho"><span><span class="mk-hl">${esc(m.text)}</span>${m.learned ? '<span class="mk-learned-tag">aprendida</span>' : ''}</span></button>
           <textarea class="mk-note" data-note="${m.id}" rows="1" placeholder="Escreva uma anotação…" title="Clique para editar" ${m.note ? '' : 'hidden'}>${esc(m.note)}</textarea>
           <div class="mk-actions">
             ${m.note ? '' : `<button class="text-btn" data-add-note="${m.id}">Anotar</button>`}
+            ${isTrackable(m) ? `<button class="text-btn muted" data-learn="${m.id}">${m.learned ? 'Voltar a praticar' : 'Já aprendi'}</button>` : ''}
             <button class="text-btn muted" data-del-mark="${m.id}">Apagar</button>
           </div>
         </article>`;
@@ -1668,6 +1805,7 @@ document.addEventListener('click', e => {
   if ((el = on('[data-goto]'))) { gotoMark(findMark(el.dataset.goto)); return; }
   if ((el = on('[data-add-note]'))) { openNote(el.dataset.addNote); return; }
   if ((el = on('[data-open-note]'))) { openNote(el.dataset.openNote); return; }
+  if ((el = on('[data-learn]'))) { const m = findMark(el.dataset.learn); if (m) setLearned(m, !m.learned); return; }
   if ((el = on('[data-del-mark]'))) { const m = findMark(el.dataset.delMark); if (m) deleteMark(m); return; }
   const w = e.target.closest('[data-word]');
   if (w) { lookup(w.dataset.word); return; }
@@ -1685,7 +1823,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const typing = !!e.target.matches?.('input, textarea');
   if (e.key === 'Escape' && typing) { e.target.blur(); return; }
-  if (e.key === 'Escape') { hideSelPop(); hideHlPop(); return; }
+  if (e.key === 'Escape') { hideSelPop(); hideHlPop(); hideEchoPop(); return; }
   if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === '/') { e.preventDefault(); setPanel(true); showPane('dict'); $('search').focus(); }
   else if (e.key === 'd' || e.key === 'D') setPanel(!panelOpen());
